@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, PlusCircle, Settings, X, LogOut, ShieldCheck } from 'lucide-react';
+import { Calendar, Users, PlusCircle, Settings, X, LogOut, ShieldCheck, Bell, BellOff } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 export const Sidebar = ({ isAdmin }) => {
   const { nomes, updateNomes } = useAppData();
   const { signOut, session } = useAuth();
+  const duoId = session?.user?.user_metadata?.duo_id;
+  const { subscribed, loading: loadingPush, supported: pushSupported, subscribe, unsubscribe } = usePushNotifications(duoId);
   const [modalAberto, setModalAberto] = useState(false);
   const [form, setForm] = useState({ estudanteA: '', estudanteB: '' });
   const [salvando, setSalvando] = useState(false);
@@ -72,6 +75,21 @@ export const Sidebar = ({ isAdmin }) => {
         </nav>
 
         <div className="p-4 border-t border-[#DADADA] space-y-1">
+          {pushSupported && (
+            <button
+              onClick={subscribed ? unsubscribe : subscribe}
+              disabled={loadingPush}
+              className={clsx(
+                'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors',
+                subscribed
+                  ? 'text-[#2D6A4F] bg-[#D8F3DC] hover:bg-[#c5eacc]'
+                  : 'text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000]'
+              )}
+            >
+              {subscribed ? <Bell size={18} /> : <BellOff size={18} />}
+              {loadingPush ? 'Aguarde...' : subscribed ? 'Notificações ativas' : 'Ativar notificações'}
+            </button>
+          )}
           <button
             onClick={abrirModal}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000] transition-colors"

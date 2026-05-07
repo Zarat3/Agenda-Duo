@@ -55,6 +55,14 @@ export const Confirmar = () => {
 
     setConsulta(prev => ({ ...prev, status: novoStatus }));
     setAcao(null);
+
+    if (novoStatus === 'Confirmado') {
+      fetch('/api/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consulta_id: id }),
+      }).catch(() => {});
+    }
   };
 
   if (loading) {
