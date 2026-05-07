@@ -46,11 +46,8 @@ export const Sidebar = ({ isAdmin }) => {
   return (
     <>
       <aside className="w-64 bg-white border-r border-[#DADADA] h-screen flex flex-col shadow-card">
-        <div className="px-6 py-5 border-b border-[#DADADA]">
-          <h1 className="text-base font-extrabold text-[#800000] tracking-tight leading-tight">
-            Univassouras
-          </h1>
-          <p className="text-xs font-semibold text-[#666666] mt-0.5">Agenda Duo</p>
+        <div className="px-6 py-4 border-b border-[#DADADA] flex items-center">
+          <img src="/logo-horizontal.svg" alt="DUO" className="h-10" />
         </div>
 
         <nav className="flex-1 p-4 space-y-1">

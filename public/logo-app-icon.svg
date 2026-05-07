@@ -1,0 +1,28 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Burgundy background -->
+  <rect width="512" height="512" rx="80" fill="#800000"/>
+  <!-- Icon centered and scaled (~4x) -->
+  <!-- Left clip -->
+  <rect x="152" y="88" width="52" height="88" rx="26" fill="white"/>
+  <rect x="163" y="104" width="30" height="46" rx="14" fill="#800000"/>
+  <!-- Right clip -->
+  <rect x="308" y="88" width="52" height="88" rx="26" fill="white"/>
+  <rect x="319" y="104" width="30" height="46" rx="14" fill="#800000"/>
+  <!-- Calendar body (white) -->
+  <rect x="76" y="136" width="360" height="300" rx="52" fill="white"/>
+  <!-- Header (burgundy strip) -->
+  <rect x="76" y="136" width="360" height="108" rx="52" fill="#800000"/>
+  <rect x="76" y="188" width="360" height="56" fill="#800000"/>
+  <!-- Inner white body -->
+  <rect x="104" y="244" width="304" height="168" rx="32" fill="white"/>
+  <!-- Grid 3x3 -->
+  <rect x="120" y="260" width="72" height="40" rx="10" fill="#800000"/>
+  <rect x="220" y="260" width="72" height="40" rx="10" fill="#800000"/>
+  <rect x="320" y="260" width="72" height="40" rx="10" fill="#800000"/>
+  <rect x="120" y="316" width="72" height="40" rx="10" fill="#800000"/>
+  <rect x="220" y="316" width="72" height="40" rx="10" fill="#800000"/>
+  <rect x="320" y="316" width="72" height="40" rx="10" fill="#800000"/>
+  <rect x="120" y="372" width="72" height="28" rx="10" fill="#800000"/>
+  <rect x="220" y="372" width="72" height="28" rx="10" fill="#800000"/>
+  <rect x="320" y="372" width="72" height="28" rx="10" fill="#800000"/>
+</svg>

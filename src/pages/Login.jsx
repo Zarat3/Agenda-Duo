@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogIn } from 'lucide-react';
 
+
 export const Login = () => {
   const { signIn } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -25,11 +26,8 @@ export const Login = () => {
     <div className="min-h-screen bg-[#F9F9F9] flex flex-col items-center justify-center px-4 font-[Manrope,Inter,sans-serif]">
       {/* Header brand */}
       <div className="w-full max-w-sm mb-6 text-center">
-        <div className="w-16 h-16 bg-[#800000] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-card">
-          <LogIn size={28} className="text-white" />
-        </div>
-        <h1 className="text-2xl font-extrabold text-[#800000] tracking-tight">Agenda Duo</h1>
-        <p className="text-[#666666] text-sm mt-1 font-medium">Clínica Odontológica · Univassouras</p>
+        <img src="/logo-stacked.svg" alt="DUO" className="h-36 mx-auto mb-2" />
+        <p className="text-[#666666] text-sm font-medium">Clínica Odontológica · Univassouras</p>
       </div>
 
       {/* Card */}

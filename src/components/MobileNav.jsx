@@ -41,10 +41,7 @@ export const MobileNav = ({ isAdmin }) => {
     <>
       {/* Barra superior */}
       <header className="md:hidden bg-white border-b border-[#DADADA] px-4 py-3 flex justify-between items-center sticky top-0 z-20 shadow-card">
-        <div>
-          <p className="text-xs font-semibold text-[#666666] leading-none">Univassouras</p>
-          <h1 className="text-base font-extrabold text-[#800000] tracking-tight leading-tight">Agenda Duo</h1>
-        </div>
+        <img src="/logo-horizontal.svg" alt="DUO" className="h-9" />
         <div className="flex items-center gap-3">
           <button onClick={abrirModal} className="p-2 text-[#666666] hover:text-[#800000] transition-colors rounded-lg hover:bg-[#F9F9F9]">
             <Settings size={20} />

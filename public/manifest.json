@@ -1,6 +1,6 @@
 {
   "name": "Agenda Duo – Univassouras",
-  "short_name": "Agenda Duo",
+  "short_name": "DUO",
   "description": "Sistema de agendamento da Clínica Odontológica de Univassouras",
   "start_url": "/",
   "display": "standalone",
@@ -9,7 +9,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/logo-app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
