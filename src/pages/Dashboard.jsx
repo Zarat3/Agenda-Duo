@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import {
@@ -7,8 +7,7 @@ import {
 } from 'lucide-react';
 import {
   startOfWeek, addDays, addWeeks, subWeeks,
-  addDays as nextDay, subDays,
-  isToday, format, parseISO,
+  isToday, isSameDay, format, parseISO, startOfDay,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -133,7 +132,6 @@ export const Dashboard = () => {
   });
 
   const weekLabel = `${format(weekStart, "dd 'de' MMM", { locale: ptBR })} — ${format(addDays(weekStart, 5), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}`;
-  const diaLabel  = format(diaAtual, "EEEE, dd 'de' MMMM", { locale: ptBR });
   const diaStr    = format(diaAtual, 'yyyy-MM-dd');
 
   const toggleFiltro = (key) => {
@@ -211,6 +209,20 @@ export const Dashboard = () => {
     );
   };
 
+  /* ── Carrossel de dias (mobile) ── */
+  const DIAS_CARROSSEL = Array.from({ length: 28 }, (_, i) =>
+    addDays(startOfDay(new Date()), i - 7)
+  );
+  const pilulasRef = useRef({});
+  const carrosselRef = useRef(null);
+
+  useEffect(() => {
+    const el = pilulasRef.current[format(diaAtual, 'yyyy-MM-dd')];
+    if (el && carrosselRef.current) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [diaAtual]);
+
   return (
     <>
       {/* ════════════════════════════════════════════════
@@ -218,28 +230,65 @@ export const Dashboard = () => {
       ════════════════════════════════════════════════ */}
       <div className="md:hidden flex flex-col gap-3">
 
-        {/* Filtro + navegação */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <FiltroEstudantes mobile />
-          <div className="flex items-center gap-1 ml-auto">
-            <button onClick={() => setDiaAtual(d => subDays(d, 1))}
-              className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600">
-              <ChevronLeft size={18} />
-            </button>
-            <button onClick={() => setDiaAtual(new Date())}
-              className="px-3 py-1.5 text-xs font-semibold bg-[#800000] text-white rounded-lg hover:bg-[#660000]">
-              Hoje
-            </button>
-            <button onClick={() => setDiaAtual(d => nextDay(d, 1))}
-              className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-600">
-              <ChevronRight size={18} />
-            </button>
+        {/* Carrossel de dias */}
+        <div className="bg-white rounded-2xl border border-[#DADADA] shadow-card overflow-hidden">
+          {/* Mês / ano + filtro */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#DADADA]">
+            <span className="text-sm font-bold text-[#1A1A1A] capitalize">
+              {format(diaAtual, 'MMMM yyyy', { locale: ptBR })}
+            </span>
+            <div className="flex gap-1.5">
+              {estudantes.map(({ key, nome, dot }) => (
+                <button key={key} onClick={() => toggleFiltro(key)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                    filtro[key]
+                      ? 'border-[#DADADA] bg-white text-[#1A1A1A]'
+                      : 'border-transparent text-[#666666] opacity-40'
+                  }`}>
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${filtro[key] ? dot : 'bg-gray-300'}`} />
+                  {nome.split(' ')[0]}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Label do dia */}
-        <div className={`text-center py-2 rounded-xl text-sm font-semibold capitalize ${isToday(diaAtual) ? 'bg-[#800000] text-white' : 'bg-white border border-gray-200 text-gray-700'}`}>
-          {diaLabel}
+          {/* Pílulas de dias */}
+          <div ref={carrosselRef}
+            className="flex gap-2 px-3 py-3 overflow-x-auto scroll-smooth"
+            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {DIAS_CARROSSEL.map(dia => {
+              const key = format(dia, 'yyyy-MM-dd');
+              const ativo = isSameDay(dia, diaAtual);
+              const hoje = isToday(dia);
+              const temConsulta = consultas.some(c => c.data === key);
+              return (
+                <button
+                  key={key}
+                  ref={el => { pilulasRef.current[key] = el; }}
+                  onClick={() => setDiaAtual(dia)}
+                  className={`flex flex-col items-center shrink-0 w-11 py-2 rounded-xl transition-all ${
+                    ativo
+                      ? 'bg-[#800000] text-white shadow-card'
+                      : hoje
+                        ? 'bg-[#800000]/10 text-[#800000]'
+                        : 'text-[#666666] hover:bg-[#F9F9F9]'
+                  }`}
+                >
+                  <span className="text-[10px] font-semibold uppercase leading-none">
+                    {format(dia, 'EEE', { locale: ptBR }).slice(0, 3)}
+                  </span>
+                  <span className="text-base font-extrabold mt-1 leading-none">
+                    {format(dia, 'd')}
+                  </span>
+                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
+                    temConsulta
+                      ? ativo ? 'bg-white/70' : 'bg-[#800000]'
+                      : 'bg-transparent'
+                  }`} />
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Turnos do dia */}
