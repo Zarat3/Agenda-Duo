@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import {
   ChevronLeft, ChevronRight, X,
-  Phone, MessageCircle, FileText, AlertTriangle, Lock, LockOpen,
+  Phone, MessageCircle, FileText, AlertTriangle, Lock, LockOpen, Trash2,
 } from 'lucide-react';
 import {
   startOfWeek, addDays, addWeeks, subWeeks,
@@ -35,7 +35,8 @@ const DOT  = { 'Estudante A': 'bg-blue-500', 'Estudante B': 'bg-purple-500' };
 const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 /* ─── Popup ────────────────────────────────────────────── */
-const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWhatsApp, onStatusChange }) => {
+const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWhatsApp, onStatusChange, onDelete }) => {
+  const [confirmandoDelete, setConfirmandoDelete] = React.useState(false);
   const nomeDupla  = c.dupla === 'Estudante A' ? nomes.estudanteA : nomes.estudanteB;
   const dotColor   = DOT[c.dupla] || 'bg-gray-400';
   let dataFmt = c.data;
@@ -107,6 +108,27 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
               <FileText size={15} /> Prontuário
             </button>
           </div>
+
+          {!confirmandoDelete ? (
+            <button onClick={() => setConfirmandoDelete(true)}
+              className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-[#C94C4C] hover:bg-[#FDECEA] py-2 rounded-xl transition-colors mt-1">
+              <Trash2 size={13} /> Apagar consulta
+            </button>
+          ) : (
+            <div className="mt-1 bg-[#FDECEA] border border-[#C94C4C]/30 rounded-xl px-4 py-3">
+              <p className="text-xs font-semibold text-[#C94C4C] text-center mb-2">Tem certeza? Essa ação não pode ser desfeita.</p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmandoDelete(false)}
+                  className="flex-1 text-xs font-medium py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
+                  Cancelar
+                </button>
+                <button onClick={onDelete}
+                  className="flex-1 text-xs font-semibold py-2 bg-[#C94C4C] hover:bg-red-700 text-white rounded-lg transition-colors">
+                  Sim, apagar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -115,7 +137,7 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
 
 /* ─── Dashboard ────────────────────────────────────────── */
 export const Dashboard = () => {
-  const { consultas, pacientes, nomes, diasBloqueados, updateConsultaStatus, bloquearDia, desbloquearDia } = useAppData();
+  const { consultas, pacientes, nomes, diasBloqueados, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
   const navigate = useNavigate();
 
   // Desktop: semana
@@ -576,6 +598,7 @@ export const Dashboard = () => {
           onWhatsApp={() => handleWhatsApp(popup.paciente, popup.consulta)}
           onProntuario={() => { setPopup(null); navigate(`/pacientes/${popup.paciente.id}`, { state: { from: 'agenda' } }); }}
           onStatusChange={handleStatusChange}
+          onDelete={() => { deleteConsulta(popup.consulta.id).catch(console.error); setPopup(null); }}
         />
       )}
 

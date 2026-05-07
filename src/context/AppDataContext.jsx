@@ -115,6 +115,16 @@ export const AppDataProvider = ({ children, duoId }) => {
     return nova;
   };
 
+  const deleteConsulta = async (id) => {
+    const { error } = await supabase
+      .from('consultas')
+      .delete()
+      .eq('id', id)
+      .eq('duo_id', duoId);
+    if (error) throw new Error(error.message);
+    setConsultas(prev => prev.filter(c => c.id !== id));
+  };
+
   const updateConsultaStatus = async (id, newStatus) => {
     const { error } = await supabase
       .from('consultas')
@@ -211,7 +221,7 @@ export const AppDataProvider = ({ children, duoId }) => {
     <AppDataContext.Provider value={{
       pacientes, consultas, plano, nomes, diasBloqueados, loading,
       addPaciente, updatePacienteAlertas, updateAnamnese,
-      addConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha,
+      addConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha, deleteConsulta,
       updateNomes,
       addPlanoItem, updatePlanoStatus, deletePlanoItem,
       bloquearDia, desbloquearDia,
