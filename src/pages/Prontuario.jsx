@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import {
   ArrowLeft, Plus, Trash2, Pencil, Check, X,
-  AlertTriangle, ShieldAlert, FileText, ClipboardList,
+  AlertTriangle, ShieldAlert, FileText, ClipboardList, Activity,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -42,7 +42,7 @@ export const Prontuario = () => {
   const fromAgenda = location.state?.from === 'agenda';
   const {
     pacientes, consultas, plano, nomes,
-    updatePacienteAlertas,
+    updatePacienteAlertas, updateAnamnese,
     addPlanoItem, updatePlanoStatus, deletePlanoItem,
     updateConsultaFicha, updateConsultaDescricao,
   } = useAppData();
@@ -68,6 +68,30 @@ export const Prontuario = () => {
       setEditandoAlertas(false);
     } finally {
       setSalvandoAlertas(false);
+    }
+  };
+
+  // ── Anamnese ──────────────────────────────────────────
+  const [editandoAnamnese, setEditandoAnamnese] = useState(false);
+  const [anamneseForm, setAnamneseForm] = useState({ queixa_principal: '', historico_medico: '', medicamentos: '' });
+  const [salvandoAnamnese, setSalvandoAnamnese] = useState(false);
+
+  const iniciarAnamnese = () => {
+    setAnamneseForm({
+      queixa_principal: paciente.queixa_principal || '',
+      historico_medico: paciente.historico_medico || '',
+      medicamentos: paciente.medicamentos || '',
+    });
+    setEditandoAnamnese(true);
+  };
+
+  const salvarAnamnese = async () => {
+    setSalvandoAnamnese(true);
+    try {
+      await updateAnamnese(id, anamneseForm);
+      setEditandoAnamnese(false);
+    } finally {
+      setSalvandoAnamnese(false);
     }
   };
 
@@ -242,6 +266,97 @@ export const Prontuario = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── Mini Anamnese ────────────────────────────── */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="font-bold text-gray-800 flex items-center gap-2">
+            <Activity size={16} className="text-[#800000]" />
+            Anamnese
+          </h2>
+          {!editandoAnamnese && (
+            <button onClick={iniciarAnamnese}
+              className="flex items-center gap-1 text-xs text-[#800000] hover:underline">
+              <Pencil size={11} />
+              {paciente.queixa_principal || paciente.historico_medico || paciente.medicamentos ? 'Editar' : 'Preencher'}
+            </button>
+          )}
+        </div>
+
+        {editandoAnamnese ? (
+          <div className="px-6 py-5 space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Queixa Principal</label>
+              <input
+                type="text"
+                placeholder="Por que o paciente veio ao serviço?"
+                value={anamneseForm.queixa_principal}
+                onChange={e => setAnamneseForm(f => ({ ...f, queixa_principal: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#800000]"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Histórico Médico Relevante</label>
+              <textarea
+                rows={3}
+                placeholder="Doenças, cirurgias anteriores, tratamentos em curso..."
+                value={anamneseForm.historico_medico}
+                onChange={e => setAnamneseForm(f => ({ ...f, historico_medico: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#800000] resize-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Medicamentos em Uso</label>
+              <input
+                type="text"
+                placeholder="Ex: Losartana 50mg, AAS 100mg..."
+                value={anamneseForm.medicamentos}
+                onChange={e => setAnamneseForm(f => ({ ...f, medicamentos: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#800000]"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={salvarAnamnese} disabled={salvandoAnamnese}
+                className="flex items-center gap-1 bg-[#800000] hover:bg-[#660000] disabled:bg-gray-400 text-white text-xs font-medium px-4 py-2 rounded-lg">
+                <Check size={13} /> {salvandoAnamnese ? 'Salvando...' : 'Salvar'}
+              </button>
+              <button onClick={() => setEditandoAnamnese(false)}
+                className="text-xs text-gray-500 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="px-6 py-5">
+            {paciente.queixa_principal || paciente.historico_medico || paciente.medicamentos ? (
+              <div className="space-y-4">
+                {paciente.queixa_principal && (
+                  <div>
+                    <p className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold mb-1">Queixa Principal</p>
+                    <p className="text-sm text-gray-800 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">{paciente.queixa_principal}</p>
+                  </div>
+                )}
+                {paciente.historico_medico && (
+                  <div>
+                    <p className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold mb-1">Histórico Médico</p>
+                    <p className="text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 whitespace-pre-line">{paciente.historico_medico}</p>
+                  </div>
+                )}
+                {paciente.medicamentos && (
+                  <div>
+                    <p className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold mb-1">Medicamentos em Uso</p>
+                    <p className="text-sm text-gray-700">{paciente.medicamentos}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 italic text-center py-4">
+                Anamnese não preenchida. Clique em "Preencher" após a primeira consulta.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Plano de Tratamento ───────────────────────── */}

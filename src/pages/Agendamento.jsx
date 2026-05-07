@@ -22,7 +22,6 @@ export const Agendamento = () => {
     horario: '',
     dupla: 'Estudante A',
     status: 'Pendente',
-    queixa_principal: '',
     descricao: '',
   });
 
@@ -157,23 +156,12 @@ export const Agendamento = () => {
           </div>
 
           <div>
-            <label className={labelCls}>Queixa Principal <span className="text-[#666666] font-normal">(opcional)</span></label>
-            <input
-              type="text"
-              value={form.queixa_principal}
-              onChange={e => setForm({...form, queixa_principal: e.target.value})}
-              placeholder="Ex: Dor no dente 36, Avaliação inicial, Restauração..."
-              className={inputCls}
-            />
-          </div>
-
-          <div>
-            <label className={labelCls}>Observações <span className="text-[#666666] font-normal">(opcional)</span></label>
+            <label className={labelCls}>Observações do Agendamento <span className="text-[#666666] font-normal">(opcional)</span></label>
             <textarea
               rows={3}
               value={form.descricao}
               onChange={e => setForm({...form, descricao: e.target.value})}
-              placeholder="Ex: Paciente relatou dor no molar direito. Necessário raio-x..."
+              placeholder="Ex: Paciente solicitou horário matutino, confirmação por WhatsApp..."
               className={`${inputCls} resize-none`}
             />
           </div>

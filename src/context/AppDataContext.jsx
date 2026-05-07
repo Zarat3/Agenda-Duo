@@ -65,6 +65,22 @@ export const AppDataProvider = ({ children, duoId }) => {
     setPacientes(prev => prev.map(p => p.id === id ? { ...p, alertas: alertas || null } : p));
   };
 
+  const updateAnamnese = async (id, { queixa_principal, historico_medico, medicamentos }) => {
+    const { error } = await supabase
+      .from('pacientes')
+      .update({
+        queixa_principal: queixa_principal || null,
+        historico_medico: historico_medico || null,
+        medicamentos: medicamentos || null,
+      })
+      .eq('id', id)
+      .eq('duo_id', duoId);
+    if (error) throw new Error(error.message);
+    setPacientes(prev => prev.map(p =>
+      p.id === id ? { ...p, queixa_principal, historico_medico, medicamentos } : p
+    ));
+  };
+
   const addConsulta = async (consulta) => {
     const conflito = consultas.find(c =>
       c.data === consulta.data &&
@@ -194,7 +210,7 @@ export const AppDataProvider = ({ children, duoId }) => {
   return (
     <AppDataContext.Provider value={{
       pacientes, consultas, plano, nomes, diasBloqueados, loading,
-      addPaciente, updatePacienteAlertas,
+      addPaciente, updatePacienteAlertas, updateAnamnese,
       addConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha,
       updateNomes,
       addPlanoItem, updatePlanoStatus, deletePlanoItem,
