@@ -1,15 +1,82 @@
 @import "tailwindcss";
 
 @theme {
-  --color-univassouras: #800000;
-  --color-univassouras-light: #9a0000;
-  --color-univassouras-dark: #660000;
-  --color-background: #F3F4F6;
+  --font-manrope: 'Manrope', 'Inter', sans-serif;
+
+  /* Marca */
+  --color-brand: #800000;
+  --color-brand-light: #9a0000;
+  --color-brand-dark: #660000;
+
+  /* Superfície */
+  --color-surface: #F9F9F9;
+  --color-card: #FFFFFF;
+  --color-border: #DADADA;
+
+  /* Texto */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #666666;
+
+  /* Status */
+  --color-status-success: #2D6A4F;
+  --color-status-success-bg: #D8F3DC;
+  --color-status-warning: #7A5800;
+  --color-status-warning-bg: #FFF3CD;
+  --color-status-danger: #C94C4C;
+  --color-status-danger-bg: #FDECEA;
+  --color-status-neutral: #4B5563;
+  --color-status-neutral-bg: #F3F4F6;
 }
 
 @layer base {
   body {
-    background-color: var(--color-background);
-    color: #111827;
+    font-family: var(--font-manrope);
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  input, select, textarea, button {
+    font-family: inherit;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 48px;
+  }
+
+  button {
+    min-height: 44px;
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .shadow-card-hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .status-confirmado {
+    background-color: var(--color-status-success-bg);
+    color: var(--color-status-success);
+  }
+
+  .status-pendente {
+    background-color: var(--color-status-warning-bg);
+    color: var(--color-status-warning);
+  }
+
+  .status-cancelado {
+    background-color: var(--color-status-danger-bg);
+    color: var(--color-status-danger);
+  }
+
+  .status-realizado {
+    background-color: var(--color-status-neutral-bg);
+    color: var(--color-status-neutral);
   }
 }

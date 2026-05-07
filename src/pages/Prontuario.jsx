@@ -11,17 +11,17 @@ import { ptBR } from 'date-fns/locale';
 const STATUS_PLANO = ['Planejado', 'Em andamento', 'Concluído', 'Cancelado'];
 
 const STATUS_PLANO_COR = {
-  'Planejado':    'bg-blue-100   text-blue-700',
-  'Em andamento': 'bg-yellow-100 text-yellow-700',
-  'Concluído':    'bg-green-100  text-green-700',
-  'Cancelado':    'bg-red-100    text-red-600',
+  'Planejado':    'bg-blue-100    text-blue-700',
+  'Em andamento': 'bg-[#FFF3CD]   text-[#7A5800]',
+  'Concluído':    'bg-[#D8F3DC]   text-[#2D6A4F]',
+  'Cancelado':    'bg-[#FDECEA]   text-[#C94C4C]',
 };
 
 const STATUS_CONSULTA_COR = {
-  'Confirmado': 'bg-green-100  text-green-700',
-  'Pendente':   'bg-yellow-100 text-yellow-700',
-  'Cancelado':  'bg-red-100    text-red-700',
-  'Realizado':  'bg-gray-100   text-gray-600',
+  'Confirmado': 'bg-[#D8F3DC] text-[#2D6A4F]',
+  'Pendente':   'bg-[#FFF3CD] text-[#7A5800]',
+  'Cancelado':  'bg-[#FDECEA] text-[#C94C4C]',
+  'Realizado':  'bg-gray-100  text-gray-500',
 };
 
 const CHIPS_ALERTAS = ['Hipertensão', 'Diabetes', 'Alergia a medicamentos', 'Cardiopatia', 'Coagulopatia', 'Gestante'];

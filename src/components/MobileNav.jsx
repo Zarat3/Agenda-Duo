@@ -40,28 +40,31 @@ export const MobileNav = ({ isAdmin }) => {
   return (
     <>
       {/* Barra superior */}
-      <header className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center sticky top-0 z-20">
-        <h1 className="text-base font-bold text-[#800000]">Univassouras | Agenda Duo</h1>
-        <div className="flex items-center gap-4">
-          <button onClick={abrirModal} className="text-gray-500 hover:text-[#800000] transition-colors">
+      <header className="md:hidden bg-white border-b border-[#DADADA] px-4 py-3 flex justify-between items-center sticky top-0 z-20 shadow-card">
+        <div>
+          <p className="text-xs font-semibold text-[#666666] leading-none">Univassouras</p>
+          <h1 className="text-base font-extrabold text-[#800000] tracking-tight leading-tight">Agenda Duo</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={abrirModal} className="p-2 text-[#666666] hover:text-[#800000] transition-colors rounded-lg hover:bg-[#F9F9F9]">
             <Settings size={20} />
           </button>
-          <button onClick={signOut} className="text-gray-500 hover:text-red-600 transition-colors">
+          <button onClick={signOut} className="p-2 text-[#666666] hover:text-[#C94C4C] transition-colors rounded-lg hover:bg-[#FDECEA]">
             <LogOut size={20} />
           </button>
         </div>
       </header>
 
       {/* Barra de navegação inferior */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around z-20 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#DADADA] flex justify-around z-20 pb-safe shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
         {navItems.map(item => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.to === '/'}
             className={({ isActive }) => clsx(
-              'flex flex-col items-center py-2 px-3 text-xs font-medium transition-colors min-w-0',
-              isActive ? 'text-[#800000]' : 'text-gray-400'
+              'flex flex-col items-center py-2.5 px-3 text-xs font-semibold transition-colors min-w-0',
+              isActive ? 'text-[#800000]' : 'text-[#666666]'
             )}
           >
             <item.icon size={22} />
@@ -73,41 +76,41 @@ export const MobileNav = ({ isAdmin }) => {
       {/* Modal de configurações */}
       {modalAberto && (
         <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl md:rounded-xl shadow-xl p-6 w-full md:max-w-sm">
+          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-xl border border-[#DADADA] p-6 w-full md:max-w-sm">
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <Settings size={20} className="text-[#800000]" />
+              <h2 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2">
+                <Settings size={18} className="text-[#800000]" />
                 Nomes da Dupla
               </h2>
-              <button onClick={() => setModalAberto(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setModalAberto(false)} className="text-[#666666] hover:text-[#1A1A1A]">
                 <X size={20} />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Estudante A</label>
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-1.5">Estudante A</label>
                 <input
                   type="text"
                   value={form.estudanteA}
                   onChange={e => setForm({ ...form, estudanteA: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000]"
+                  className="w-full border border-[#DADADA] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000] text-[#1A1A1A]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Estudante B</label>
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-1.5">Estudante B</label>
                 <input
                   type="text"
                   value={form.estudanteB}
                   onChange={e => setForm({ ...form, estudanteB: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000]"
+                  className="w-full border border-[#DADADA] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000] text-[#1A1A1A]"
                 />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setModalAberto(false)} className="flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50">
+              <button onClick={() => setModalAberto(false)} className="flex-1 border border-[#DADADA] text-[#666666] py-3 rounded-xl hover:bg-[#F9F9F9] font-semibold text-sm">
                 Cancelar
               </button>
-              <button onClick={handleSalvar} disabled={salvando} className="flex-1 bg-[#800000] hover:bg-[#660000] disabled:bg-gray-400 text-white py-2 rounded-lg font-medium">
+              <button onClick={handleSalvar} disabled={salvando} className="flex-1 bg-[#800000] hover:bg-[#660000] disabled:bg-gray-300 text-white py-3 rounded-xl font-semibold text-sm">
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </div>

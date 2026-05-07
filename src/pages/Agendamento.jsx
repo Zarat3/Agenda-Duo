@@ -9,10 +9,13 @@ const TURNOS_HORARIOS = [
   { label: 'Noite (16:20 – 19:40)',  slots: ['16:20', '17:20', '18:20'] },
 ];
 
+const inputCls = 'w-full border border-[#DADADA] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000] text-[#1A1A1A] bg-white transition-shadow';
+const labelCls = 'block text-sm font-semibold text-[#1A1A1A] mb-1.5';
+
 export const Agendamento = () => {
   const { pacientes, addConsulta, nomes } = useAppData();
   const navigate = useNavigate();
-  
+
   const [form, setForm] = useState({
     pacienteId: '',
     data: '',
@@ -22,10 +25,9 @@ export const Agendamento = () => {
     queixa_principal: '',
     descricao: '',
   });
-  
+
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState(false);
-
   const [salvando, setSalvando] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -52,34 +54,36 @@ export const Agendamento = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-          <CalendarIcon className="text-[#800000]" />
+      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-card border border-[#DADADA]">
+        <h2 className="text-xl font-extrabold text-[#1A1A1A] mb-6 flex items-center gap-2.5">
+          <span className="w-9 h-9 rounded-xl bg-[#800000]/10 flex items-center justify-center">
+            <CalendarIcon size={18} className="text-[#800000]" />
+          </span>
           Novo Agendamento
         </h2>
 
         {erro && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
+          <div className="mb-5 p-4 bg-[#FDECEA] border border-[#C94C4C]/30 text-[#C94C4C] rounded-xl flex items-start gap-3">
             <AlertCircle className="shrink-0 mt-0.5" size={18} />
-            <p className="text-sm font-medium">{erro}</p>
+            <p className="text-sm font-semibold">{erro}</p>
           </div>
         )}
 
         {sucesso && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-start gap-3">
+          <div className="mb-5 p-4 bg-[#D8F3DC] border border-[#2D6A4F]/30 text-[#2D6A4F] rounded-xl flex items-start gap-3">
             <CheckCircle className="shrink-0 mt-0.5" size={18} />
-            <p className="text-sm font-medium">Agendamento realizado com sucesso! Redirecionando...</p>
+            <p className="text-sm font-semibold">Agendamento realizado com sucesso! Redirecionando...</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Paciente *</label>
-            <select 
+            <label className={labelCls}>Paciente *</label>
+            <select
               required
               value={form.pacienteId}
               onChange={e => setForm({...form, pacienteId: e.target.value})}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000] bg-white"
+              className={inputCls}
             >
               <option value="">Selecione um paciente</option>
               {pacientes.map(p => (
@@ -87,28 +91,28 @@ export const Agendamento = () => {
               ))}
             </select>
             {pacientes.length === 0 && (
-              <p className="text-xs text-orange-500 mt-1">Cadastre um paciente primeiro.</p>
+              <p className="text-xs text-[#7A5800] mt-1.5 font-medium">Cadastre um paciente primeiro.</p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data *</label>
-              <input 
+              <label className={labelCls}>Data *</label>
+              <input
                 type="date"
                 required
                 value={form.data}
                 onChange={e => setForm({...form, data: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000]"
+                className={inputCls}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Horário *</label>
-              <select 
+              <label className={labelCls}>Horário *</label>
+              <select
                 required
                 value={form.horario}
                 onChange={e => setForm({...form, horario: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000] bg-white"
+                className={inputCls}
               >
                 <option value="">Selecione</option>
                 {TURNOS_HORARIOS.map(turno => (
@@ -124,22 +128,22 @@ export const Agendamento = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Responsável (Dupla) *</label>
-              <select 
+              <label className={labelCls}>Responsável (Dupla) *</label>
+              <select
                 value={form.dupla}
                 onChange={e => setForm({...form, dupla: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000] bg-white"
+                className={inputCls}
               >
                 <option value="Estudante A">{nomes.estudanteA}</option>
                 <option value="Estudante B">{nomes.estudanteB}</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status Inicial</label>
-              <select 
+              <label className={labelCls}>Status Inicial</label>
+              <select
                 value={form.status}
                 onChange={e => setForm({...form, status: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000] bg-white"
+                className={inputCls}
               >
                 <option value="Pendente">Pendente</option>
                 <option value="Confirmado">Confirmado</option>
@@ -148,32 +152,32 @@ export const Agendamento = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Queixa Principal <span className="text-gray-400 font-normal">(opcional)</span></label>
+            <label className={labelCls}>Queixa Principal <span className="text-[#666666] font-normal">(opcional)</span></label>
             <input
               type="text"
               value={form.queixa_principal}
               onChange={e => setForm({...form, queixa_principal: e.target.value})}
               placeholder="Ex: Dor no dente 36, Avaliação inicial, Restauração..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000]"
+              className={inputCls}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Observações <span className="text-gray-400 font-normal">(opcional)</span></label>
+            <label className={labelCls}>Observações <span className="text-[#666666] font-normal">(opcional)</span></label>
             <textarea
               rows={3}
               value={form.descricao}
               onChange={e => setForm({...form, descricao: e.target.value})}
               placeholder="Ex: Paciente relatou dor no molar direito. Necessário raio-x..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#800000] resize-none"
+              className={`${inputCls} resize-none`}
             />
           </div>
 
-          <div className="pt-4 border-t border-gray-100">
+          <div className="pt-4 border-t border-[#DADADA]">
             <button
               type="submit"
               disabled={pacientes.length === 0 || salvando}
-              className="w-full bg-[#800000] hover:bg-[#660000] disabled:bg-gray-400 text-white font-medium py-3 rounded-lg transition-colors flex justify-center items-center gap-2"
+              className="w-full bg-[#800000] hover:bg-[#660000] disabled:bg-gray-300 text-white font-semibold py-3.5 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-card"
             >
               <CheckCircle size={18} />
               {salvando ? 'Salvando...' : 'Confirmar Agendamento'}

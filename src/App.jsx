@@ -12,7 +12,7 @@ import { Admin } from './pages/Admin';
 import { Prontuario } from './pages/Prontuario';
 
 const LoadingScreen = () => (
-  <div className="flex h-screen items-center justify-center bg-[#F3F4F6]">
+  <div className="flex h-screen items-center justify-center bg-[#F9F9F9]">
     <div className="text-center">
       <div className="w-10 h-10 border-4 border-[#800000] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
       <p className="text-gray-500 font-medium">Carregando...</p>
@@ -28,7 +28,7 @@ function AppContent() {
   if (loading) return <LoadingScreen />;
 
   return (
-    <div className="flex h-screen bg-[#F3F4F6] font-['Inter',sans-serif]">
+    <div className="flex h-screen bg-[#F9F9F9] font-[Manrope,Inter,sans-serif]">
       {/* Sidebar — somente desktop */}
       <div className="hidden md:block">
         <Sidebar isAdmin={isAdmin} />
@@ -61,7 +61,7 @@ function AppInner() {
 
   if (!duoId) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F3F4F6] font-['Inter',sans-serif]">
+      <div className="flex h-screen items-center justify-center bg-[#F9F9F9] font-['Inter',sans-serif]">
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center max-w-sm">
           <p className="text-[#800000] font-semibold text-lg">Conta sem dupla configurada</p>
           <p className="text-gray-500 text-sm mt-2">Contacte o administrador para vincular sua conta a uma dupla.</p>
