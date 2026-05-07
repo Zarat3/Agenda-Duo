@@ -10,6 +10,7 @@ import { Agendamento } from './pages/Agendamento';
 import { Login } from './pages/Login';
 import { Admin } from './pages/Admin';
 import { Prontuario } from './pages/Prontuario';
+import { NovoPaciente } from './pages/NovoPaciente';
 
 const LoadingScreen = () => (
   <div className="flex h-screen items-center justify-center bg-[#F9F9F9]">
@@ -41,6 +42,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/pacientes" element={<Pacientes />} />
+            <Route path="/pacientes/novo" element={<NovoPaciente />} />
             <Route path="/pacientes/:id" element={<Prontuario />} />
             <Route path="/agendamento" element={<Agendamento />} />
             {isAdmin && <Route path="/admin" element={<Admin />} />}
