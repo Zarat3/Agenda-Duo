@@ -20,10 +20,20 @@ export const Agendamento = () => {
     pacienteId: '',
     data: '',
     horario: '',
+    horario_fim: '',
     dupla: 'Estudante A',
     status: 'Pendente',
     descricao: '',
   });
+
+  const getTurnoDoHorario = (h) => TURNOS_HORARIOS.find(t => t.slots.includes(h));
+  const horariosFim = form.horario
+    ? (() => {
+        const turno = getTurnoDoHorario(form.horario);
+        if (!turno) return [];
+        return turno.slots.slice(turno.slots.indexOf(form.horario) + 1);
+      })()
+    : [];
 
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState(false);
@@ -115,11 +125,11 @@ export const Agendamento = () => {
               />
             </div>
             <div>
-              <label className={labelCls}>Horário *</label>
+              <label className={labelCls}>Horário de início *</label>
               <select
                 required
                 value={form.horario}
-                onChange={e => setForm({...form, horario: e.target.value})}
+                onChange={e => setForm({...form, horario: e.target.value, horario_fim: ''})}
                 className={inputCls}
               >
                 <option value="">Selecione</option>
@@ -133,6 +143,22 @@ export const Agendamento = () => {
               </select>
             </div>
           </div>
+
+          {horariosFim.length > 0 && (
+            <div>
+              <label className={labelCls}>Horário de término <span className="text-[#666666] font-normal">(opcional — para consultas longas)</span></label>
+              <select
+                value={form.horario_fim}
+                onChange={e => setForm({...form, horario_fim: e.target.value})}
+                className={inputCls}
+              >
+                <option value="">Bloco único ({form.horario})</option>
+                {horariosFim.map(h => (
+                  <option key={h} value={h}>Até {h}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

@@ -74,7 +74,9 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
           )}
 
           <div className="bg-gray-50 rounded-xl px-4 py-3 space-y-1.5">
-            <p className="text-sm font-semibold text-gray-800 capitalize">{dataFmt} · {c.horario}</p>
+            <p className="text-sm font-semibold text-gray-800 capitalize">
+              {dataFmt} · {c.horario_fim ? `${c.horario} – ${c.horario_fim}` : c.horario}
+            </p>
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${dotColor}`} />
               <p className="text-sm text-gray-600">{nomeDupla}</p>
@@ -185,8 +187,19 @@ export const Dashboard = () => {
     });
   };
 
+  const ALL_SLOTS = ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','16:20','17:20','18:20'];
+  const getSlotsInRange = (horario, horario_fim) => {
+    if (!horario_fim || horario === horario_fim) return [horario];
+    const start = ALL_SLOTS.indexOf(horario);
+    const end = ALL_SLOTS.indexOf(horario_fim);
+    if (start === -1 || end === -1 || end < start) return [horario];
+    return ALL_SLOTS.slice(start, end + 1);
+  };
+
   const getCell = (dateStr, horario) =>
-    consultas.filter(c => c.data === dateStr && c.horario === horario && filtro[c.dupla]);
+    consultas.filter(c =>
+      c.data === dateStr && filtro[c.dupla] && getSlotsInRange(c.horario, c.horario_fim).includes(horario)
+    );
 
   const abrirPopup = (c) => {
     const pac = pacientes.find(p => p.id === c.pacienteId);
@@ -230,24 +243,26 @@ export const Dashboard = () => {
   );
 
   /* ── Card de consulta (compartilhado mobile/desktop) ── */
-  const ConsultaCard = ({ c }) => {
+  const ConsultaCard = ({ c, horarioAtual }) => {
     const pac = pacientes.find(p => p.id === c.pacienteId);
     if (!pac) return null;
     const cls = STATUS_CARD[c.status] || STATUS_CARD['Realizado'];
+    const isContinuacao = horarioAtual && horarioAtual !== c.horario;
+    const blocoLabel = c.horario_fim ? `${c.horario} – ${c.horario_fim}` : null;
     return (
       <button onClick={() => abrirPopup(c)}
-        className={`w-full text-left rounded-lg px-3 py-2 mb-1.5 border-l-4 text-sm hover:brightness-95 transition-all ${cls}`}>
+        className={`w-full text-left rounded-lg px-3 py-2 mb-1.5 border-l-4 text-sm hover:brightness-95 transition-all ${cls} ${isContinuacao ? 'opacity-60' : ''}`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className={`w-2 h-2 rounded-full shrink-0 ${DOT[c.dupla] || 'bg-gray-400'}`} />
-            <span className="font-semibold truncate">{pac.nome}</span>
+            <span className="font-semibold truncate">{isContinuacao ? '↓ ' : ''}{pac.nome}</span>
           </div>
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${STATUS_BADGE[c.status]}`}>
             {c.status}
           </span>
         </div>
-        {c.queixa_principal && (
-          <p className="text-xs text-gray-500 mt-0.5 pl-3.5 truncate">{c.queixa_principal}</p>
+        {blocoLabel && !isContinuacao && (
+          <p className="text-xs mt-0.5 pl-3.5 opacity-70">{blocoLabel}</p>
         )}
       </button>
     );
@@ -441,7 +456,7 @@ export const Dashboard = () => {
                         <span className="text-xs font-semibold text-gray-400 w-12 shrink-0 pt-0.5">{horario}</span>
                         <div className="flex-1 min-w-0">
                           {items.length > 0
-                            ? items.map(c => <ConsultaCard key={c.id} c={c} />)
+                            ? items.map(c => <ConsultaCard key={c.id} c={c} horarioAtual={horario} />)
                             : <p className="text-xs text-gray-300 italic">Livre</p>
                           }
                         </div>
@@ -560,14 +575,15 @@ export const Dashboard = () => {
                                 const pac = pacientes.find(p => p.id === c.pacienteId);
                                 if (!pac) return null;
                                 const cls = STATUS_CARD[c.status] || STATUS_CARD['Realizado'];
+                                const isContinuacao = horario !== c.horario;
                                 return (
                                   <button key={c.id} onClick={() => abrirPopup(c)}
-                                    className={`w-full text-left rounded px-1.5 py-1 mb-1 border-l-2 text-[11px] leading-tight hover:brightness-95 transition-all ${cls}`}>
+                                    className={`w-full text-left rounded px-1.5 py-1 mb-1 border-l-2 text-[11px] leading-tight hover:brightness-95 transition-all ${cls} ${isContinuacao ? 'opacity-50' : ''}`}>
                                     <div className="flex items-center gap-1 min-w-0">
                                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT[c.dupla] || 'bg-gray-400'}`} />
-                                      <span className="font-semibold truncate">{pac.nome.split(' ')[0]}</span>
+                                      <span className="font-semibold truncate">{isContinuacao ? '↓' : pac.nome.split(' ')[0]}</span>
                                     </div>
-                                    <p className="text-[10px] opacity-70 truncate pl-2.5">{c.status}</p>
+                                    {!isContinuacao && <p className="text-[10px] opacity-70 truncate pl-2.5">{c.status}</p>}
                                   </button>
                                 );
                               })}

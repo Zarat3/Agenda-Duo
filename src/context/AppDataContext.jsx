@@ -81,17 +81,25 @@ export const AppDataProvider = ({ children, duoId }) => {
     ));
   };
 
+  const ALL_SLOTS = ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','16:20','17:20','18:20'];
+  const getSlotsInRange = (horario, horario_fim) => {
+    if (!horario_fim || horario === horario_fim) return [horario];
+    const start = ALL_SLOTS.indexOf(horario);
+    const end = ALL_SLOTS.indexOf(horario_fim);
+    if (start === -1 || end === -1 || end < start) return [horario];
+    return ALL_SLOTS.slice(start, end + 1);
+  };
+
   const addConsulta = async (consulta) => {
-    const conflito = consultas.find(c =>
-      c.data === consulta.data &&
-      c.horario === consulta.horario &&
-      c.dupla === consulta.dupla &&
-      c.status !== 'Cancelado'
-    );
+    const slotsNovo = getSlotsInRange(consulta.horario, consulta.horario_fim);
+    const conflito = consultas.find(c => {
+      if (c.data !== consulta.data || c.dupla !== consulta.dupla || c.status === 'Cancelado') return false;
+      return getSlotsInRange(c.horario, c.horario_fim).some(s => slotsNovo.includes(s));
+    });
 
     if (conflito) {
       const nomeDupla = consulta.dupla === 'Estudante A' ? nomes.estudanteA : nomes.estudanteB;
-      throw new Error(`Já existe uma consulta para ${consulta.data} às ${consulta.horario} com ${nomeDupla}.`);
+      throw new Error(`Conflito de horário para ${consulta.data} com ${nomeDupla}.`);
     }
 
     const { data, error } = await supabase
@@ -100,10 +108,10 @@ export const AppDataProvider = ({ children, duoId }) => {
         paciente_id: consulta.pacienteId,
         data: consulta.data,
         horario: consulta.horario,
+        horario_fim: consulta.horario_fim || null,
         dupla: consulta.dupla,
         status: consulta.status,
         descricao: consulta.descricao || null,
-        queixa_principal: consulta.queixa_principal || null,
         duo_id: duoId,
       }])
       .select()
