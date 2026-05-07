@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import {
@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import {
   startOfWeek, addDays, addWeeks, subWeeks,
-  isToday, isSameDay, format, parseISO, startOfDay,
+  isToday, isSameDay, format, parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -209,17 +209,16 @@ export const Dashboard = () => {
     );
   };
 
-  /* ── Carrossel de dias (mobile) ── */
-  const DIAS_CARROSSEL = Array.from({ length: 28 }, (_, i) =>
-    addDays(startOfDay(new Date()), i - 7)
+  /* ── Seletor de semana (mobile) ── */
+  const [semanaBaseMobile, setSemanaBaseMobile] = useState(
+    startOfWeek(new Date(), { weekStartsOn: 1 })
   );
-  const pilulasRef = useRef({});
-  const carrosselRef = useRef(null);
+  const diasSemana = Array.from({ length: 7 }, (_, i) => addDays(semanaBaseMobile, i));
 
   useEffect(() => {
-    const el = pilulasRef.current[format(diaAtual, 'yyyy-MM-dd')];
-    if (el && carrosselRef.current) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const fim = addDays(semanaBaseMobile, 6);
+    if (diaAtual < semanaBaseMobile || diaAtual > fim) {
+      setSemanaBaseMobile(startOfWeek(diaAtual, { weekStartsOn: 1 }));
     }
   }, [diaAtual]);
 
@@ -230,20 +229,28 @@ export const Dashboard = () => {
       ════════════════════════════════════════════════ */}
       <div className="md:hidden flex flex-col gap-3">
 
-        {/* Carrossel de dias */}
+        {/* Seletor de semana */}
         <div className="bg-white rounded-2xl border border-[#DADADA] shadow-card overflow-hidden">
-          {/* Mês / ano + filtro */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#DADADA]">
-            <span className="text-sm font-bold text-[#1A1A1A] capitalize">
-              {format(diaAtual, 'MMMM yyyy', { locale: ptBR })}
-            </span>
+          {/* Header: navegação semana + filtro */}
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#DADADA]">
+            <div className="flex items-center gap-1">
+              <button onClick={() => setSemanaBaseMobile(w => subWeeks(w, 1))}
+                className="p-1 rounded-lg text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000] transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-sm font-bold text-[#1A1A1A] capitalize px-1">
+                {format(semanaBaseMobile, 'MMM yyyy', { locale: ptBR })}
+              </span>
+              <button onClick={() => setSemanaBaseMobile(w => addWeeks(w, 1))}
+                className="p-1 rounded-lg text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000] transition-colors">
+                <ChevronRight size={16} />
+              </button>
+            </div>
             <div className="flex gap-1.5">
               {estudantes.map(({ key, nome, dot }) => (
                 <button key={key} onClick={() => toggleFiltro(key)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
-                    filtro[key]
-                      ? 'border-[#DADADA] bg-white text-[#1A1A1A]'
-                      : 'border-transparent text-[#666666] opacity-40'
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold border transition-all ${
+                    filtro[key] ? 'border-[#DADADA] bg-white text-[#1A1A1A]' : 'border-transparent text-[#666666] opacity-40'
                   }`}>
                   <span className={`w-2 h-2 rounded-full shrink-0 ${filtro[key] ? dot : 'bg-gray-300'}`} />
                   {nome.split(' ')[0]}
@@ -252,28 +259,22 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Pílulas de dias */}
-          <div ref={carrosselRef}
-            className="flex gap-2 px-3 py-3 overflow-x-auto scroll-smooth"
-            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-            {DIAS_CARROSSEL.map(dia => {
+          {/* Grade 7 colunas — ocupa 100% da largura do card */}
+          <div className="grid grid-cols-7 px-2 py-2 gap-1">
+            {diasSemana.map(dia => {
               const key = format(dia, 'yyyy-MM-dd');
               const ativo = isSameDay(dia, diaAtual);
               const hoje = isToday(dia);
               const temConsulta = consultas.some(c => c.data === key);
               return (
-                <button
-                  key={key}
-                  ref={el => { pilulasRef.current[key] = el; }}
-                  onClick={() => setDiaAtual(dia)}
-                  className={`flex flex-col items-center shrink-0 w-11 py-2 rounded-xl transition-all ${
+                <button key={key} onClick={() => setDiaAtual(dia)}
+                  className={`flex flex-col items-center py-2 rounded-xl transition-all ${
                     ativo
-                      ? 'bg-[#800000] text-white shadow-card'
+                      ? 'bg-[#800000] text-white'
                       : hoje
                         ? 'bg-[#800000]/10 text-[#800000]'
                         : 'text-[#666666] hover:bg-[#F9F9F9]'
-                  }`}
-                >
+                  }`}>
                   <span className="text-[10px] font-semibold uppercase leading-none">
                     {format(dia, 'EEE', { locale: ptBR }).slice(0, 3)}
                   </span>
@@ -281,9 +282,7 @@ export const Dashboard = () => {
                     {format(dia, 'd')}
                   </span>
                   <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
-                    temConsulta
-                      ? ativo ? 'bg-white/70' : 'bg-[#800000]'
-                      : 'bg-transparent'
+                    temConsulta ? (ativo ? 'bg-white/70' : 'bg-[#800000]') : 'bg-transparent'
                   }`} />
                 </button>
               );
