@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-univassouras: #800000;
+  --color-univassouras-light: #9a0000;
+  --color-univassouras-dark: #660000;
+  --color-background: #F3F4F6;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: #111827;
+  }
+}
