@@ -91,16 +91,6 @@ export const AppDataProvider = ({ children, duoId }) => {
   };
 
   const addConsulta = async (consulta) => {
-    const slotsNovo = getSlotsInRange(consulta.horario, consulta.horario_fim);
-    const conflito = consultas.find(c => {
-      if (c.data !== consulta.data || c.dupla !== consulta.dupla || c.status === 'Cancelado') return false;
-      return getSlotsInRange(c.horario, c.horario_fim).some(s => slotsNovo.includes(s));
-    });
-
-    if (conflito) {
-      const nomeDupla = consulta.dupla === 'Estudante A' ? nomes.estudanteA : nomes.estudanteB;
-      throw new Error(`Conflito de horário para ${consulta.data} com ${nomeDupla}.`);
-    }
 
     const { data, error } = await supabase
       .from('consultas')

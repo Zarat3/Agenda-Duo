@@ -455,6 +455,11 @@ export const Dashboard = () => {
                       <div key={horario} className="flex gap-3 px-4 py-2.5 items-start">
                         <span className="text-xs font-semibold text-gray-400 w-12 shrink-0 pt-0.5">{horario}</span>
                         <div className="flex-1 min-w-0">
+                          {items.length > 1 && (
+                            <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-0.5 mb-1.5 inline-flex items-center gap-1">
+                              ⚡ {items.length} pacientes
+                            </p>
+                          )}
                           {items.length > 0
                             ? items.map(c => <ConsultaCard key={c.id} c={c} horarioAtual={horario} />)
                             : <p className="text-xs text-gray-300 italic">Livre</p>
@@ -571,22 +576,31 @@ export const Dashboard = () => {
                               className={`p-1 border-r border-gray-100 last:border-r-0 min-h-[48px] ${
                                 bloqueado ? 'bg-gray-50' : isToday(date) ? 'bg-[#fff9f9]' : ''
                               }`}>
-                              {bloqueado ? null : items.map(c => {
-                                const pac = pacientes.find(p => p.id === c.pacienteId);
-                                if (!pac) return null;
-                                const cls = STATUS_CARD[c.status] || STATUS_CARD['Realizado'];
-                                const isContinuacao = horario !== c.horario;
-                                return (
-                                  <button key={c.id} onClick={() => abrirPopup(c)}
-                                    className={`w-full text-left rounded px-1.5 py-1 mb-1 border-l-2 text-[11px] leading-tight hover:brightness-95 transition-all ${cls} ${isContinuacao ? 'opacity-50' : ''}`}>
-                                    <div className="flex items-center gap-1 min-w-0">
-                                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT[c.dupla] || 'bg-gray-400'}`} />
-                                      <span className="font-semibold truncate">{isContinuacao ? '↓' : pac.nome.split(' ')[0]}</span>
-                                    </div>
-                                    {!isContinuacao && <p className="text-[10px] opacity-70 truncate pl-2.5">{c.status}</p>}
-                                  </button>
-                                );
-                              })}
+                              {bloqueado ? null : (
+                                <>
+                                  {items.length > 1 && (
+                                    <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 mb-0.5 inline-block">
+                                      ⚡{items.length}
+                                    </span>
+                                  )}
+                                  {items.map(c => {
+                                    const pac = pacientes.find(p => p.id === c.pacienteId);
+                                    if (!pac) return null;
+                                    const cls = STATUS_CARD[c.status] || STATUS_CARD['Realizado'];
+                                    const isContinuacao = horario !== c.horario;
+                                    return (
+                                      <button key={c.id} onClick={() => abrirPopup(c)}
+                                        className={`w-full text-left rounded px-1.5 py-1 mb-1 border-l-2 text-[11px] leading-tight hover:brightness-95 transition-all ${cls} ${isContinuacao ? 'opacity-50' : ''}`}>
+                                        <div className="flex items-center gap-1 min-w-0">
+                                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT[c.dupla] || 'bg-gray-400'}`} />
+                                          <span className="font-semibold truncate">{isContinuacao ? '↓' : pac.nome.split(' ')[0]}</span>
+                                        </div>
+                                        {!isContinuacao && <p className="text-[10px] opacity-70 truncate pl-2.5">{c.status}</p>}
+                                      </button>
+                                    );
+                                  })}
+                                </>
+                              )}
                             </div>
                           );
                         })}

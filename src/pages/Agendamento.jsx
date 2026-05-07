@@ -1,16 +1,120 @@
 import React, { useState } from 'react';
 import { useAppData } from '../context/AppDataContext';
-import { Calendar as CalendarIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const TURNOS_HORARIOS = [
-  { label: 'Manhã (08:00 – 11:20)',  slots: ['08:00', '09:00', '10:00', '11:00'] },
-  { label: 'Tarde (13:00 – 16:20)',  slots: ['13:00', '14:00', '15:00', '16:00'] },
-  { label: 'Noite (16:20 – 19:40)',  slots: ['16:20', '17:20', '18:20'] },
+  { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
+  { label: 'Tarde', slots: ['13:00', '14:00', '15:00', '16:00'] },
+  { label: 'Noite', slots: ['16:20', '17:20', '18:20'] },
 ];
 
 const inputCls = 'w-full border border-[#DADADA] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000] text-[#1A1A1A] bg-white transition-shadow';
 const labelCls = 'block text-sm font-semibold text-[#1A1A1A] mb-1.5';
+
+const getTurnoIdx = (slot) => TURNOS_HORARIOS.findIndex(t => t.slots.includes(slot));
+
+const HorarioPicker = ({ inicio, fim, onConfirm, onClose }) => {
+  const [tempStart, setTempStart] = useState(inicio || '');
+  const [tempEnd, setTempEnd]     = useState(fim || '');
+
+  const handleSlot = (slot) => {
+    if (!tempStart) {
+      setTempStart(slot); setTempEnd(''); return;
+    }
+    if (slot === tempStart && !tempEnd) {
+      setTempStart(''); return;
+    }
+    const turnoStart = getTurnoIdx(tempStart);
+    const turnoSlot  = getTurnoIdx(slot);
+    if (turnoSlot !== turnoStart) {
+      setTempStart(slot); setTempEnd(''); return;
+    }
+    const turno   = TURNOS_HORARIOS[turnoStart];
+    const idxS    = turno.slots.indexOf(tempStart);
+    const idxSlot = turno.slots.indexOf(slot);
+    if (idxSlot > idxS) { setTempEnd(slot); }
+    else { setTempStart(slot); setTempEnd(''); }
+  };
+
+  const isInRange = (slot) => {
+    if (!tempStart) return false;
+    if (!tempEnd)   return slot === tempStart;
+    const turno = TURNOS_HORARIOS[getTurnoIdx(tempStart)];
+    if (!turno) return false;
+    const idxS   = turno.slots.indexOf(tempStart);
+    const idxE   = turno.slots.indexOf(tempEnd);
+    const idxCur = turno.slots.indexOf(slot);
+    return idxCur >= idxS && idxCur <= idxE;
+  };
+
+  const label = tempStart
+    ? (tempEnd ? `${tempStart} – ${tempEnd}` : tempStart)
+    : '';
+
+  return (
+    <div className="fixed inset-0 bg-black/30 flex items-end sm:items-center justify-center z-50 p-4"
+      onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl border border-[#DADADA] p-5 w-full max-w-sm"
+        onClick={e => e.stopPropagation()}>
+
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-bold text-[#1A1A1A]">Selecione o horário</h3>
+          <button type="button" onClick={onClose} className="text-[#666666] hover:text-[#1A1A1A]">
+            <X size={18} />
+          </button>
+        </div>
+        <p className="text-xs text-[#666666] mb-4">
+          Toque em um slot para início. Toque em outro do mesmo turno para definir o fim do bloco.
+        </p>
+
+        {TURNOS_HORARIOS.map(turno => (
+          <div key={turno.label} className="mb-4">
+            <p className="text-xs font-bold text-[#666666] uppercase tracking-widest mb-2">{turno.label}</p>
+            <div className="flex flex-wrap gap-2">
+              {turno.slots.map(slot => {
+                const inRange  = isInRange(slot);
+                const isStart  = slot === tempStart;
+                const isEnd    = slot === tempEnd;
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => handleSlot(slot)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                      isStart || isEnd
+                        ? 'bg-[#800000] border-[#800000] text-white'
+                        : inRange
+                          ? 'bg-[#800000]/15 border-[#800000]/30 text-[#800000]'
+                          : 'bg-white border-[#DADADA] text-[#666666] hover:border-[#800000] hover:text-[#800000]'
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {label && (
+          <div className="bg-[#800000]/5 border border-[#800000]/20 rounded-xl px-4 py-2.5 mb-4 text-center">
+            <p className="text-sm font-bold text-[#800000]">{label}</p>
+          </div>
+        )}
+
+        <button
+          type="button"
+          disabled={!tempStart}
+          onClick={() => { onConfirm(tempStart, tempEnd || ''); onClose(); }}
+          className="w-full bg-[#800000] hover:bg-[#660000] disabled:bg-gray-300 text-white font-semibold py-3 rounded-xl transition-colors"
+        >
+          Confirmar
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const Agendamento = () => {
   const { pacientes, addConsulta, nomes, diasBloqueados } = useAppData();
@@ -26,29 +130,23 @@ export const Agendamento = () => {
     descricao: '',
   });
 
-  const getTurnoDoHorario = (h) => TURNOS_HORARIOS.find(t => t.slots.includes(h));
-  const horariosFim = form.horario
-    ? (() => {
-        const turno = getTurnoDoHorario(form.horario);
-        if (!turno) return [];
-        return turno.slots.slice(turno.slots.indexOf(form.horario) + 1);
-      })()
-    : [];
-
-  const [erro, setErro] = useState('');
+  const [pickerAberto, setPickerAberto] = useState(false);
+  const [erro, setErro]     = useState('');
   const [sucesso, setSucesso] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
+  const horarioLabel = form.horario
+    ? (form.horario_fim ? `${form.horario} – ${form.horario_fim}` : form.horario)
+    : '';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErro('');
-    setSucesso(false);
+    setErro(''); setSucesso(false);
 
     if (!form.pacienteId || !form.data || !form.horario) {
       setErro('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
-
     if (diasBloqueados.some(d => d.data === form.data)) {
       setErro('Este dia está bloqueado para agendamentos. Escolha outra data.');
       return;
@@ -82,7 +180,6 @@ export const Agendamento = () => {
             <p className="text-sm font-semibold">{erro}</p>
           </div>
         )}
-
         {sucesso && (
           <div className="mb-5 p-4 bg-[#D8F3DC] border border-[#2D6A4F]/30 text-[#2D6A4F] rounded-xl flex items-start gap-3">
             <CheckCircle className="shrink-0 mt-0.5" size={18} />
@@ -97,11 +194,8 @@ export const Agendamento = () => {
               required
               value={form.pacienteId}
               onChange={e => {
-                if (e.target.value === '__novo__') {
-                  navigate('/pacientes/novo');
-                } else {
-                  setForm({...form, pacienteId: e.target.value});
-                }
+                if (e.target.value === '__novo__') navigate('/pacientes/novo');
+                else setForm({ ...form, pacienteId: e.target.value });
               }}
               className={inputCls}
             >
@@ -120,52 +214,29 @@ export const Agendamento = () => {
                 type="date"
                 required
                 value={form.data}
-                onChange={e => setForm({...form, data: e.target.value})}
+                onChange={e => setForm({ ...form, data: e.target.value })}
                 className={inputCls}
               />
             </div>
             <div>
-              <label className={labelCls}>Horário de início *</label>
-              <select
-                required
-                value={form.horario}
-                onChange={e => setForm({...form, horario: e.target.value, horario_fim: ''})}
-                className={inputCls}
+              <label className={labelCls}>Horário *</label>
+              <button
+                type="button"
+                onClick={() => setPickerAberto(true)}
+                className={`${inputCls} flex items-center justify-between text-left ${!horarioLabel ? 'text-[#AAAAAA]' : ''}`}
               >
-                <option value="">Selecione</option>
-                {TURNOS_HORARIOS.map(turno => (
-                  <optgroup key={turno.label} label={turno.label}>
-                    {turno.slots.map(h => (
-                      <option key={h} value={h}>{h}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+                <span>{horarioLabel || 'Selecione'}</span>
+                <Clock size={16} className="text-[#800000] shrink-0" />
+              </button>
             </div>
           </div>
-
-          {horariosFim.length > 0 && (
-            <div>
-              <label className={labelCls}>Horário de término <span className="text-[#666666] font-normal">(opcional — para consultas longas)</span></label>
-              <select
-                value={form.horario_fim}
-                onChange={e => setForm({...form, horario_fim: e.target.value})}
-                className={inputCls}
-              >
-                <option value="">Bloco único ({form.horario})</option>
-                {horariosFim.map(h => (
-                  <option key={h} value={h}>Até {h}</option>
-                ))}
-              </select>
-            </div>
-          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Responsável (Dupla) *</label>
               <select
                 value={form.dupla}
-                onChange={e => setForm({...form, dupla: e.target.value})}
+                onChange={e => setForm({ ...form, dupla: e.target.value })}
                 className={inputCls}
               >
                 <option value="Estudante A">{nomes.estudanteA}</option>
@@ -176,7 +247,7 @@ export const Agendamento = () => {
               <label className={labelCls}>Status Inicial</label>
               <select
                 value={form.status}
-                onChange={e => setForm({...form, status: e.target.value})}
+                onChange={e => setForm({ ...form, status: e.target.value })}
                 className={inputCls}
               >
                 <option value="Pendente">Pendente</option>
@@ -190,7 +261,7 @@ export const Agendamento = () => {
             <textarea
               rows={3}
               value={form.descricao}
-              onChange={e => setForm({...form, descricao: e.target.value})}
+              onChange={e => setForm({ ...form, descricao: e.target.value })}
               placeholder="Ex: Paciente solicitou horário matutino, confirmação por WhatsApp..."
               className={`${inputCls} resize-none`}
             />
@@ -208,6 +279,15 @@ export const Agendamento = () => {
           </div>
         </form>
       </div>
+
+      {pickerAberto && (
+        <HorarioPicker
+          inicio={form.horario}
+          fim={form.horario_fim}
+          onConfirm={(h, hf) => setForm(f => ({ ...f, horario: h, horario_fim: hf }))}
+          onClose={() => setPickerAberto(false)}
+        />
+      )}
     </div>
   );
 };
