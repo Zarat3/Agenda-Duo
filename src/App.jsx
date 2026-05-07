@@ -11,6 +11,7 @@ import { Login } from './pages/Login';
 import { Admin } from './pages/Admin';
 import { Prontuario } from './pages/Prontuario';
 import { NovoPaciente } from './pages/NovoPaciente';
+import { Confirmar } from './pages/Confirmar';
 
 const LoadingScreen = () => (
   <div className="flex h-screen items-center justify-center bg-[#F9F9F9]">
@@ -83,7 +84,10 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <AppInner />
+        <Routes>
+          <Route path="/confirmar/:id" element={<Confirmar />} />
+          <Route path="/*" element={<AppInner />} />
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   );

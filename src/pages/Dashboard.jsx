@@ -174,7 +174,8 @@ export const Dashboard = () => {
   const handleWhatsApp = (pac, c) => {
     let dataFmt = c.data;
     try { dataFmt = format(parseISO(c.data), 'dd/MM/yyyy'); } catch {}
-    const text = `Olá ${pac.nome}, confirmamos sua consulta na clínica da Univassouras para o dia ${dataFmt} às ${c.horario}. Podemos confirmar?`;
+    const link = `${window.location.origin}/confirmar/${c.id}`;
+    const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nSua consulta odontológica está marcada para *${dataFmt}* às *${c.horario}*.\n\nConfirme sua presença pelo link abaixo:\n${link}`;
     const num  = pac.telefone.replace(/\D/g, '');
     window.open(`https://wa.me/55${num}?text=${encodeURIComponent(text)}`, '_blank');
   };
