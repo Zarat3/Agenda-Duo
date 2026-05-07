@@ -86,17 +86,21 @@ export const Agendamento = () => {
             <select
               required
               value={form.pacienteId}
-              onChange={e => setForm({...form, pacienteId: e.target.value})}
+              onChange={e => {
+                if (e.target.value === '__novo__') {
+                  navigate('/pacientes/novo');
+                } else {
+                  setForm({...form, pacienteId: e.target.value});
+                }
+              }}
               className={inputCls}
             >
               <option value="">Selecione um paciente</option>
+              <option value="__novo__">+ Cadastrar novo paciente</option>
               {pacientes.map(p => (
                 <option key={p.id} value={p.id}>{p.nome} - {p.telefone}</option>
               ))}
             </select>
-            {pacientes.length === 0 && (
-              <p className="text-xs text-[#7A5800] mt-1.5 font-medium">Cadastre um paciente primeiro.</p>
-            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
