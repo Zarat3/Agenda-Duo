@@ -25,5 +25,5 @@
   <rect x="95" y="81" width="18" height="14" rx="3" fill="#800000"/>
   <!-- DUO text centered -->
   <text x="80" y="158" font-family="Manrope, Inter, sans-serif" font-weight="800"
-        font-size="54" fill="#800000" text-anchor="middle" letter-spacing="-1">DUO</text>
+        font-size="54" fill="#800000" text-anchor="middle" letter-spacing="-1">Duo</text>
 </svg>
