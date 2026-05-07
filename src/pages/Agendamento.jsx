@@ -13,7 +13,7 @@ const inputCls = 'w-full border border-[#DADADA] rounded-xl px-4 py-3 outline-no
 const labelCls = 'block text-sm font-semibold text-[#1A1A1A] mb-1.5';
 
 export const Agendamento = () => {
-  const { pacientes, addConsulta, nomes } = useAppData();
+  const { pacientes, addConsulta, nomes, diasBloqueados } = useAppData();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -37,6 +37,11 @@ export const Agendamento = () => {
 
     if (!form.pacienteId || !form.data || !form.horario) {
       setErro('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    if (diasBloqueados.some(d => d.data === form.data)) {
+      setErro('Este dia está bloqueado para agendamentos. Escolha outra data.');
       return;
     }
 

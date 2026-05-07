@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import {
   ChevronLeft, ChevronRight, X,
-  Phone, MessageCircle, FileText, AlertTriangle,
+  Phone, MessageCircle, FileText, AlertTriangle, Lock, LockOpen,
 } from 'lucide-react';
 import {
   startOfWeek, addDays, addWeeks, subWeeks,
@@ -115,7 +115,7 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
 
 /* ─── Dashboard ────────────────────────────────────────── */
 export const Dashboard = () => {
-  const { consultas, pacientes, nomes, updateConsultaStatus } = useAppData();
+  const { consultas, pacientes, nomes, diasBloqueados, updateConsultaStatus, bloquearDia, desbloquearDia } = useAppData();
   const navigate = useNavigate();
 
   // Desktop: semana
@@ -125,6 +125,27 @@ export const Dashboard = () => {
 
   const [filtro, setFiltro] = useState({ 'Estudante A': true, 'Estudante B': true });
   const [popup, setPopup]   = useState(null);
+  const [modalDia, setModalDia] = useState(null);
+  const [feriadosNacionais, setFeriadosNacionais] = useState([]);
+
+  useEffect(() => {
+    const ano = new Date().getFullYear();
+    fetch(`https://brasilapi.com.br/api/feriados/v1/${ano}`)
+      .then(r => r.json())
+      .then(data => Array.isArray(data) && setFeriadosNacionais(data))
+      .catch(() => {});
+  }, []);
+
+  const isDiaBloqueado  = (ds) => diasBloqueados.some(d => d.data === ds);
+  const isFeriado       = (ds) => feriadosNacionais.some(f => f.date === ds);
+  const isDiaIndisponivel = (ds) => isDiaBloqueado(ds) || isFeriado(ds);
+  const infoDia = (ds) => {
+    const f = feriadosNacionais.find(f => f.date === ds);
+    if (f) return { tipo: 'nacional', motivo: f.name };
+    const b = diasBloqueados.find(d => d.data === ds);
+    if (b) return { tipo: 'custom', motivo: b.motivo };
+    return null;
+  };
 
   const days = DIAS.map((label, i) => {
     const date = addDays(weekStart, i);
@@ -209,6 +230,78 @@ export const Dashboard = () => {
     );
   };
 
+  /* ── Modal de bloqueio de dia ── */
+  const ModalBloqueio = () => {
+    const [motivo, setMotivo] = useState('');
+    const [salvando, setSalvando] = useState(false);
+    if (!modalDia) return null;
+    const { dateStr, label } = modalDia;
+    const feriado    = feriadosNacionais.find(f => f.date === dateStr);
+    const bloqueado  = diasBloqueados.find(d => d.data === dateStr);
+
+    const handleBloquear = async () => {
+      setSalvando(true);
+      try { await bloquearDia(dateStr, motivo || null); setModalDia(null); }
+      catch (e) { console.error(e); }
+      finally { setSalvando(false); }
+    };
+
+    const handleDesbloquear = async () => {
+      setSalvando(true);
+      try { await desbloquearDia(dateStr); setModalDia(null); }
+      catch (e) { console.error(e); }
+      finally { setSalvando(false); }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setModalDia(null)}>
+        <div className="bg-white rounded-2xl shadow-xl border border-[#DADADA] p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-[#1A1A1A] capitalize text-sm">{label}</h3>
+            <button onClick={() => setModalDia(null)} className="text-[#666666] hover:text-[#1A1A1A]"><X size={18} /></button>
+          </div>
+
+          {feriado ? (
+            <div className="bg-[#FFF3CD] border border-[#FFB703]/40 rounded-xl p-4 text-center">
+              <p className="text-2xl mb-1">🎉</p>
+              <p className="text-sm font-bold text-[#7A5800]">Feriado Nacional</p>
+              <p className="text-sm text-[#7A5800] mt-1">{feriado.name}</p>
+              <p className="text-xs text-[#7A5800]/70 mt-2">Dia bloqueado automaticamente.</p>
+            </div>
+          ) : bloqueado ? (
+            <div>
+              <div className="bg-[#FDECEA] border border-[#C94C4C]/30 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Lock size={14} className="text-[#C94C4C]" />
+                  <p className="text-sm font-bold text-[#C94C4C]">Dia bloqueado</p>
+                </div>
+                {bloqueado.motivo && <p className="text-sm text-[#C94C4C]/80">{bloqueado.motivo}</p>}
+              </div>
+              <button onClick={handleDesbloquear} disabled={salvando}
+                className="w-full bg-[#2D6A4F] hover:bg-[#245c43] disabled:bg-gray-300 text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2">
+                <LockOpen size={15} />
+                {salvando ? 'Desbloqueando...' : 'Desbloquear dia'}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-[#666666] mb-3">Bloquear este dia para agendamentos?</p>
+              <input type="text" placeholder="Motivo (ex: Feriado municipal, Semana de provas...)"
+                value={motivo} onChange={e => setMotivo(e.target.value)}
+                className="w-full border border-[#DADADA] rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#800000] mb-4 text-[#1A1A1A]"
+              />
+              <button onClick={handleBloquear} disabled={salvando}
+                className="w-full bg-[#800000] hover:bg-[#660000] disabled:bg-gray-300 text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2">
+                <Lock size={15} />
+                {salvando ? 'Bloqueando...' : 'Bloquear dia'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   /* ── Seletor de semana (mobile) ── */
   const [semanaBaseMobile, setSemanaBaseMobile] = useState(
     startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -265,15 +358,17 @@ export const Dashboard = () => {
               const key = format(dia, 'yyyy-MM-dd');
               const ativo = isSameDay(dia, diaAtual);
               const hoje = isToday(dia);
+              const bloqueado = isDiaIndisponivel(key);
               const temConsulta = consultas.some(c => c.data === key);
               return (
-                <button key={key} onClick={() => setDiaAtual(dia)}
-                  className={`flex flex-col items-center py-2 rounded-xl transition-all ${
-                    ativo
-                      ? 'bg-[#800000] text-white'
-                      : hoje
-                        ? 'bg-[#800000]/10 text-[#800000]'
-                        : 'text-[#666666] hover:bg-[#F9F9F9]'
+                <button key={key}
+                  onClick={() => { setDiaAtual(dia); if (ativo) setModalDia({ dateStr: key, label: format(dia, "EEE, dd 'de' MMM", { locale: ptBR }) }); }}
+                  className={`flex flex-col items-center py-2 rounded-xl transition-all relative ${
+                    bloqueado
+                      ? ativo ? 'bg-gray-400 text-white' : 'text-gray-300'
+                      : ativo ? 'bg-[#800000] text-white'
+                        : hoje ? 'bg-[#800000]/10 text-[#800000]'
+                          : 'text-[#666666] hover:bg-[#F9F9F9]'
                   }`}>
                   <span className="text-[10px] font-semibold uppercase leading-none">
                     {format(dia, 'EEE', { locale: ptBR }).slice(0, 3)}
@@ -281,9 +376,10 @@ export const Dashboard = () => {
                   <span className="text-base font-extrabold mt-1 leading-none">
                     {format(dia, 'd')}
                   </span>
-                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
-                    temConsulta ? (ativo ? 'bg-white/70' : 'bg-[#800000]') : 'bg-transparent'
-                  }`} />
+                  {bloqueado
+                    ? <Lock size={8} className="mt-1.5 opacity-70" />
+                    : <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${temConsulta ? (ativo ? 'bg-white/70' : 'bg-[#800000]') : 'bg-transparent'}`} />
+                  }
                 </button>
               );
             })}
@@ -291,13 +387,26 @@ export const Dashboard = () => {
         </div>
 
         {/* Turnos do dia */}
-        <div className="space-y-3">
-          {TURNOS.map(turno => {
-            const consultasTurno = turno.slots.flatMap(h =>
-              getCell(diaStr, h).map(c => ({ ...c, _horario: h }))
-            );
-            return (
-              <div key={turno.label} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {isDiaIndisponivel(diaStr) ? (
+          <button onClick={() => setModalDia({ dateStr: diaStr, label: format(diaAtual, "EEE, dd 'de' MMM", { locale: ptBR }) })}
+            className="w-full bg-white rounded-2xl border border-[#DADADA] shadow-card p-8 flex flex-col items-center gap-3 text-center">
+            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+              {isFeriado(diaStr) ? <span className="text-2xl">🎉</span> : <Lock size={20} className="text-gray-400" />}
+            </div>
+            <div>
+              <p className="font-bold text-[#1A1A1A] text-sm">
+                {isFeriado(diaStr) ? infoDia(diaStr)?.motivo : 'Dia bloqueado'}
+              </p>
+              {!isFeriado(diaStr) && infoDia(diaStr)?.motivo && (
+                <p className="text-xs text-[#666666] mt-1">{infoDia(diaStr).motivo}</p>
+              )}
+              <p className="text-xs text-[#666666] mt-2 underline">Toque para desbloquear</p>
+            </div>
+          </button>
+        ) : (
+          <div className="space-y-3">
+            {TURNOS.map(turno => (
+              <div key={turno.label} className="bg-white rounded-xl border border-[#DADADA] shadow-card overflow-hidden">
                 <div className={`px-4 py-2 ${turno.bg}`}>
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{turno.label}</span>
                 </div>
@@ -318,9 +427,9 @@ export const Dashboard = () => {
                   })}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ════════════════════════════════════════════════
@@ -379,15 +488,26 @@ export const Dashboard = () => {
                 {/* Day headers */}
                 <div className="grid border-b-2 border-gray-200" style={{ gridTemplateColumns: '64px repeat(6, 1fr)' }}>
                   <div className="border-r border-gray-100" />
-                  {days.map(({ label, date, dateStr }) => (
-                    <div key={dateStr}
-                      className={`py-2.5 text-center border-r border-gray-100 last:border-r-0 ${isToday(date) ? 'bg-[#fff5f5]' : ''}`}>
-                      <p className="text-[11px] font-medium text-gray-400 uppercase">{label}</p>
-                      <p className={`text-sm font-bold mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full mx-auto ${isToday(date) ? 'bg-[#800000] text-white' : 'text-gray-800'}`}>
-                        {format(date, 'd')}
-                      </p>
-                    </div>
-                  ))}
+                  {days.map(({ label, date, dateStr }) => {
+                    const bloqueado = isDiaIndisponivel(dateStr);
+                    return (
+                      <button key={dateStr}
+                        onClick={() => setModalDia({ dateStr, label: format(date, "EEE, dd 'de' MMM", { locale: ptBR }) })}
+                        className={`py-2.5 text-center border-r border-gray-100 last:border-r-0 transition-colors group ${
+                          bloqueado ? 'bg-gray-50' : isToday(date) ? 'bg-[#fff5f5]' : 'hover:bg-[#F9F9F9]'
+                        }`}>
+                        <p className={`text-[11px] font-medium uppercase flex items-center justify-center gap-1 ${bloqueado ? 'text-gray-300' : 'text-gray-400'}`}>
+                          {label}
+                          {bloqueado && <Lock size={8} className="opacity-60" />}
+                        </p>
+                        <p className={`text-sm font-bold mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full mx-auto ${
+                          bloqueado ? 'text-gray-300' : isToday(date) ? 'bg-[#800000] text-white' : 'text-gray-800'
+                        }`}>
+                          {format(date, 'd')}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Turnos */}
@@ -407,10 +527,13 @@ export const Dashboard = () => {
                         </div>
                         {days.map(({ date, dateStr }) => {
                           const items = getCell(dateStr, horario);
+                          const bloqueado = isDiaIndisponivel(dateStr);
                           return (
                             <div key={dateStr}
-                              className={`p-1 border-r border-gray-100 last:border-r-0 min-h-[48px] ${isToday(date) ? 'bg-[#fff9f9]' : ''}`}>
-                              {items.map(c => {
+                              className={`p-1 border-r border-gray-100 last:border-r-0 min-h-[48px] ${
+                                bloqueado ? 'bg-gray-50' : isToday(date) ? 'bg-[#fff9f9]' : ''
+                              }`}>
+                              {bloqueado ? null : items.map(c => {
                                 const pac = pacientes.find(p => p.id === c.pacienteId);
                                 if (!pac) return null;
                                 const cls = STATUS_CARD[c.status] || STATUS_CARD['Realizado'];
@@ -454,6 +577,9 @@ export const Dashboard = () => {
           onStatusChange={handleStatusChange}
         />
       )}
+
+      {/* Modal de bloqueio */}
+      <ModalBloqueio />
     </>
   );
 };

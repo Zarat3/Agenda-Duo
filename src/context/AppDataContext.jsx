@@ -10,6 +10,7 @@ export const AppDataProvider = ({ children, duoId }) => {
   const [consultas, setConsultas] = useState([]);
   const [plano, setPlano] = useState([]);
   const [nomes, setNomes] = useState({ estudanteA: 'Estudante A', estudanteB: 'Estudante B' });
+  const [diasBloqueados, setDiasBloqueados] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,11 +20,13 @@ export const AppDataProvider = ({ children, duoId }) => {
         { data: cons, error: errCons },
         { data: planos, error: errPlanos },
         { data: config },
+        { data: bloqueados },
       ] = await Promise.all([
         supabase.from('pacientes').select('*').eq('duo_id', duoId).order('nome'),
         supabase.from('consultas').select('*').eq('duo_id', duoId).order('data').order('horario'),
         supabase.from('plano_tratamento').select('*').eq('duo_id', duoId).order('created_at'),
         supabase.from('configuracoes').select('*').eq('duo_id', duoId).single(),
+        supabase.from('dias_bloqueados').select('*').eq('duo_id', duoId),
       ]);
 
       if (errPacs) console.error('Erro ao carregar pacientes:', errPacs.message);
@@ -34,6 +37,7 @@ export const AppDataProvider = ({ children, duoId }) => {
       if (cons) setConsultas(cons.map(mapConsulta));
       if (planos) setPlano(planos);
       if (config) setNomes({ estudanteA: config.estudante_a, estudanteB: config.estudante_b });
+      if (bloqueados) setDiasBloqueados(bloqueados);
       setLoading(false);
     };
 
@@ -157,6 +161,26 @@ export const AppDataProvider = ({ children, duoId }) => {
     setPlano(prev => prev.map(p => p.id === id ? { ...p, status } : p));
   };
 
+  const bloquearDia = async (data, motivo = null) => {
+    const { data: novo, error } = await supabase
+      .from('dias_bloqueados')
+      .upsert([{ duo_id: duoId, data, motivo }], { onConflict: 'duo_id,data' })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    setDiasBloqueados(prev => [...prev.filter(d => d.data !== data), novo]);
+  };
+
+  const desbloquearDia = async (data) => {
+    const { error } = await supabase
+      .from('dias_bloqueados')
+      .delete()
+      .eq('duo_id', duoId)
+      .eq('data', data);
+    if (error) throw new Error(error.message);
+    setDiasBloqueados(prev => prev.filter(d => d.data !== data));
+  };
+
   const deletePlanoItem = async (id) => {
     const { error } = await supabase
       .from('plano_tratamento')
@@ -169,11 +193,12 @@ export const AppDataProvider = ({ children, duoId }) => {
 
   return (
     <AppDataContext.Provider value={{
-      pacientes, consultas, plano, nomes, loading,
+      pacientes, consultas, plano, nomes, diasBloqueados, loading,
       addPaciente, updatePacienteAlertas,
       addConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha,
       updateNomes,
       addPlanoItem, updatePlanoStatus, deletePlanoItem,
+      bloquearDia, desbloquearDia,
     }}>
       {children}
     </AppDataContext.Provider>
