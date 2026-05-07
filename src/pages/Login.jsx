@@ -27,7 +27,7 @@ export const Login = () => {
       {/* Header brand */}
       <div className="w-full max-w-sm mb-6 text-center">
         <img src="/logo-stacked.svg" alt="DUO" className="h-36 mx-auto mb-2" />
-        <p className="text-[#666666] text-sm font-medium">Clínica Odontológica · Univassouras</p>
+        <p className="text-[#666666] text-sm font-medium">Clínica Odontológica Universitária</p>
       </div>
 
       {/* Card */}
@@ -72,7 +72,7 @@ export const Login = () => {
         </form>
       </div>
 
-      <p className="mt-6 text-xs text-[#666666]">Univassouras © {new Date().getFullYear()}</p>
+      <p className="mt-6 text-xs text-[#666666]">Zarat3 © {new Date().getFullYear()}</p>
     </div>
   );
 };

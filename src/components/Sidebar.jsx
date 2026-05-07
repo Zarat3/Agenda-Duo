@@ -90,7 +90,7 @@ export const Sidebar = ({ isAdmin }) => {
             Sair
           </button>
           <p className="text-xs text-center text-[#666666]/60 pt-1">
-            © {new Date().getFullYear()} Univassouras
+            © {new Date().getFullYear()} Zarat3
           </p>
         </div>
       </aside>
