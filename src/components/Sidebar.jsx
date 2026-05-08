@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, PlusCircle, Settings, X, LogOut, ShieldCheck, Bell, BellOff } from 'lucide-react';
+import { Calendar, Users, PlusCircle, Settings, X, LogOut, ShieldCheck, Bell, BellOff, Smartphone } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
@@ -75,21 +75,6 @@ export const Sidebar = ({ isAdmin }) => {
         </nav>
 
         <div className="p-4 border-t border-[#DADADA] space-y-1">
-          {pushSupported && (
-            <button
-              onClick={subscribed ? unsubscribe : subscribe}
-              disabled={loadingPush}
-              className={clsx(
-                'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors',
-                subscribed
-                  ? 'text-[#2D6A4F] bg-[#D8F3DC] hover:bg-[#c5eacc]'
-                  : 'text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000]'
-              )}
-            >
-              {subscribed ? <Bell size={18} /> : <BellOff size={18} />}
-              {loadingPush ? 'Aguarde...' : subscribed ? 'Notificações ativas' : 'Ativar notificações'}
-            </button>
-          )}
           <button
             onClick={abrirModal}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000] transition-colors"
@@ -119,7 +104,7 @@ export const Sidebar = ({ isAdmin }) => {
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2">
                 <Settings size={18} className="text-[#800000]" />
-                Nomes da Dupla
+                Configurações
               </h2>
               <button onClick={() => setModalAberto(false)} className="text-[#666666] hover:text-[#1A1A1A]">
                 <X size={20} />
@@ -148,6 +133,32 @@ export const Sidebar = ({ isAdmin }) => {
                 />
               </div>
             </div>
+
+            {pushSupported && (
+              <div className="pt-4 border-t border-[#DADADA]">
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2 flex items-center gap-2">
+                  <Smartphone size={14} className="text-[#800000]" />
+                  Notificações neste dispositivo
+                </label>
+                <button
+                  type="button"
+                  onClick={subscribed ? unsubscribe : subscribe}
+                  disabled={loadingPush}
+                  className={clsx(
+                    'w-full flex items-center gap-2.5 px-4 py-3 rounded-xl font-semibold text-sm transition-colors border',
+                    subscribed
+                      ? 'text-[#2D6A4F] bg-[#D8F3DC] border-[#2D6A4F]/20 hover:bg-[#c5eacc]'
+                      : 'text-[#666666] border-[#DADADA] hover:bg-[#F9F9F9] hover:text-[#800000]'
+                  )}
+                >
+                  {subscribed ? <Bell size={16} /> : <BellOff size={16} />}
+                  {loadingPush ? 'Aguarde...' : subscribed ? 'Ativas — toque para desativar' : 'Ativar notificações push'}
+                </button>
+                {!subscribed && (
+                  <p className="text-xs text-[#666666] mt-1.5">Receba alertas quando um paciente confirmar.</p>
+                )}
+              </div>
+            )}
 
             {erro && <p className="mt-3 text-sm text-[#C94C4C] font-medium">{erro}</p>}
 

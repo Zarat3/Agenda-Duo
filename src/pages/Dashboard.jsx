@@ -35,8 +35,17 @@ const DOT  = { 'Estudante A': 'bg-blue-500', 'Estudante B': 'bg-purple-500' };
 const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 /* ─── Popup ────────────────────────────────────────────── */
-const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWhatsApp, onStatusChange, onDelete }) => {
+const TURNOS_EDIT = [
+  { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
+  { label: 'Tarde', slots: ['13:00', '14:00', '15:00', '16:00'] },
+  { label: 'Noite', slots: ['16:20', '17:20', '18:20'] },
+];
+
+const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWhatsApp, onWhatsAppLembrete, onStatusChange, onDelete, onSaveEdit }) => {
   const [confirmandoDelete, setConfirmandoDelete] = React.useState(false);
+  const [editando, setEditando] = React.useState(false);
+  const [editForm, setEditForm] = React.useState({ data: c.data, horario: c.horario, horario_fim: c.horario_fim || '', dupla: c.dupla });
+  const [salvandoEdit, setSalvandoEdit] = React.useState(false);
   const nomeDupla  = c.dupla === 'Estudante A' ? nomes.estudanteA : nomes.estudanteB;
   const dotColor   = DOT[c.dupla] || 'bg-gray-400';
   let dataFmt = c.data;
@@ -100,16 +109,84 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
             </select>
           </div>
 
-          <div className="flex gap-2 pt-1">
-            <button onClick={onWhatsApp}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
-              <MessageCircle size={15} /> WhatsApp
-            </button>
-            <button onClick={onProntuario}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-[#800000] hover:bg-[#660000] text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
-              <FileText size={15} /> Prontuário
-            </button>
-          </div>
+          {editando ? (
+            <div className="space-y-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Data</label>
+                  <input type="date" value={editForm.data}
+                    onChange={e => setEditForm(f => ({ ...f, data: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#800000]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Início</label>
+                  <select value={editForm.horario}
+                    onChange={e => setEditForm(f => ({ ...f, horario: e.target.value, horario_fim: '' }))}
+                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#800000]">
+                    {TURNOS_EDIT.map(t => (
+                      <optgroup key={t.label} label={t.label}>
+                        {t.slots.map(h => <option key={h} value={h}>{h}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Término</label>
+                  <select value={editForm.horario_fim}
+                    onChange={e => setEditForm(f => ({ ...f, horario_fim: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#800000]">
+                    <option value="">Bloco único</option>
+                    {TURNOS_EDIT.find(t => t.slots.includes(editForm.horario))
+                      ?.slots.filter(h => h > editForm.horario)
+                      .map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Responsável</label>
+                  <select value={editForm.dupla}
+                    onChange={e => setEditForm(f => ({ ...f, dupla: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#800000]">
+                    <option value="Estudante A">{nomes.estudanteA}</option>
+                    <option value="Estudante B">{nomes.estudanteB}</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button disabled={salvandoEdit} onClick={async () => { setSalvandoEdit(true); await onSaveEdit(editForm); setSalvandoEdit(false); setEditando(false); }}
+                  className="flex-1 bg-[#800000] hover:bg-[#660000] disabled:bg-gray-300 text-white text-xs font-semibold py-2 rounded-lg">
+                  {salvandoEdit ? 'Salvando...' : 'Salvar'}
+                </button>
+                <button onClick={() => setEditando(false)}
+                  className="flex-1 border border-gray-200 text-gray-500 text-xs font-medium py-2 rounded-lg hover:bg-gray-50">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2 pt-1">
+                <button onClick={onWhatsApp}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                  <MessageCircle size={15} /> Confirmar
+                </button>
+                <button onClick={onWhatsAppLembrete}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-green-600/70 hover:bg-green-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                  <MessageCircle size={15} /> Lembrete
+                </button>
+                <button onClick={onProntuario}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-[#800000] hover:bg-[#660000] text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                  <FileText size={15} /> Prontuário
+                </button>
+              </div>
+              <button onClick={() => setEditando(true)}
+                className="w-full text-xs text-gray-400 hover:text-[#800000] hover:bg-gray-50 py-1.5 rounded-xl transition-colors mt-1">
+                ✏️ Editar data / horário / responsável
+              </button>
+            </>
+          )}
 
           {!confirmandoDelete ? (
             <button onClick={() => setConfirmandoDelete(true)}
@@ -139,7 +216,7 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
 
 /* ─── Dashboard ────────────────────────────────────────── */
 export const Dashboard = () => {
-  const { consultas, pacientes, nomes, diasBloqueados, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
+  const { consultas, pacientes, nomes, diasBloqueados, updateConsulta, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
   const navigate = useNavigate();
 
   // Desktop: semana
@@ -211,6 +288,15 @@ export const Dashboard = () => {
     try { dataFmt = format(parseISO(c.data), 'dd/MM/yyyy'); } catch {}
     const link = `${window.location.origin}/confirmar/${c.id}`;
     const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nSua consulta odontológica está marcada para *${dataFmt}* às *${c.horario}*.\n\nConfirme sua presença pelo link abaixo:\n${link}`;
+    const num  = pac.telefone.replace(/\D/g, '');
+    window.open(`https://wa.me/55${num}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleWhatsAppLembrete = (pac, c) => {
+    let dataFmt = c.data;
+    try { dataFmt = format(parseISO(c.data), "dd/MM/yyyy"); } catch {}
+    const horarioDisplay = c.horario_fim ? `${c.horario} – ${c.horario_fim}` : c.horario;
+    const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nLembrete: sua consulta odontológica é *amanhã*, dia *${dataFmt}* às *${horarioDisplay}*.\nTe esperamos! 😊`;
     const num  = pac.telefone.replace(/\D/g, '');
     window.open(`https://wa.me/55${num}?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -626,9 +712,14 @@ export const Dashboard = () => {
           nomes={nomes}
           onClose={() => setPopup(null)}
           onWhatsApp={() => handleWhatsApp(popup.paciente, popup.consulta)}
+          onWhatsAppLembrete={() => handleWhatsAppLembrete(popup.paciente, popup.consulta)}
           onProntuario={() => { setPopup(null); navigate(`/pacientes/${popup.paciente.id}`, { state: { from: 'agenda' } }); }}
           onStatusChange={handleStatusChange}
           onDelete={() => { deleteConsulta(popup.consulta.id).catch(console.error); setPopup(null); }}
+          onSaveEdit={async (editForm) => {
+            await updateConsulta(popup.consulta.id, editForm);
+            setPopup(prev => prev ? { ...prev, consulta: { ...prev.consulta, ...editForm, horario_fim: editForm.horario_fim || null } } : null);
+          }}
         />
       )}
 

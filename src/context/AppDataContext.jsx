@@ -55,6 +55,16 @@ export const AppDataProvider = ({ children, duoId }) => {
     return data;
   };
 
+  const updatePaciente = async (id, { nome, telefone, idade }) => {
+    const { error } = await supabase
+      .from('pacientes')
+      .update({ nome, telefone, idade: Number(idade) })
+      .eq('id', id)
+      .eq('duo_id', duoId);
+    if (error) throw new Error(error.message);
+    setPacientes(prev => prev.map(p => p.id === id ? { ...p, nome, telefone, idade: Number(idade) } : p));
+  };
+
   const updatePacienteAlertas = async (id, alertas) => {
     const { error } = await supabase
       .from('pacientes')
@@ -121,6 +131,16 @@ export const AppDataProvider = ({ children, duoId }) => {
       .eq('duo_id', duoId);
     if (error) throw new Error(error.message);
     setConsultas(prev => prev.filter(c => c.id !== id));
+  };
+
+  const updateConsulta = async (id, { data, horario, horario_fim, dupla }) => {
+    const { error } = await supabase
+      .from('consultas')
+      .update({ data, horario, horario_fim: horario_fim || null, dupla })
+      .eq('id', id)
+      .eq('duo_id', duoId);
+    if (error) throw new Error(error.message);
+    setConsultas(prev => prev.map(c => c.id === id ? { ...c, data, horario, horario_fim: horario_fim || null, dupla } : c));
   };
 
   const updateConsultaStatus = async (id, newStatus) => {
@@ -218,8 +238,8 @@ export const AppDataProvider = ({ children, duoId }) => {
   return (
     <AppDataContext.Provider value={{
       pacientes, consultas, plano, nomes, diasBloqueados, loading,
-      addPaciente, updatePacienteAlertas, updateAnamnese,
-      addConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha, deleteConsulta,
+      addPaciente, updatePaciente, updatePacienteAlertas, updateAnamnese,
+      addConsulta, updateConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha, deleteConsulta,
       updateNomes,
       addPlanoItem, updatePlanoStatus, deletePlanoItem,
       bloquearDia, desbloquearDia,

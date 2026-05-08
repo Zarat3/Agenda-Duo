@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { supabaseNoSession } from '../lib/supabaseNoSession';
-import { ShieldCheck, Plus, Users, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { ShieldCheck, Plus, Users, CheckCircle, AlertCircle, Loader, Trash2, X } from 'lucide-react';
 
 const emptyForm = {
   nomeDupla: '',
@@ -14,6 +14,8 @@ export const Admin = () => {
   const [form, setForm] = useState(emptyForm);
   const [estado, setEstado] = useState({ tipo: '', msg: '' });
   const [salvando, setSalvando] = useState(false);
+  const [confirmandoDelete, setConfirmandoDelete] = useState(null);
+  const [deletando, setDeletando] = useState(false);
 
   useEffect(() => {
     supabase.from('duplas').select('*').order('nome').then(({ data }) => {
@@ -70,6 +72,25 @@ export const Admin = () => {
       setEstado({ tipo: 'erro', msg: err.message });
     } finally {
       setSalvando(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    setDeletando(true);
+    try {
+      const tables = ['consultas', 'pacientes', 'plano_tratamento', 'dias_bloqueados', 'push_subscriptions', 'configuracoes'];
+      for (const table of tables) {
+        await supabase.from(table).delete().eq('duo_id', id);
+      }
+      const { error } = await supabase.from('duplas').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+      setDuplas(prev => prev.filter(d => d.id !== id));
+      setConfirmandoDelete(null);
+      setEstado({ tipo: 'ok', msg: 'Dupla excluída com sucesso.' });
+    } catch (err) {
+      setEstado({ tipo: 'erro', msg: `Erro ao excluir: ${err.message}` });
+    } finally {
+      setDeletando(false);
     }
   };
 
@@ -173,9 +194,42 @@ export const Admin = () => {
         ) : (
           <div className="space-y-2">
             {duplas.map(d => (
-              <div key={d.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                <span className="font-medium text-gray-800">{d.nome}</span>
-                <span className="text-xs text-gray-400 font-mono">{d.id.slice(0, 8)}…</span>
+              <div key={d.id}>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div>
+                    <span className="font-medium text-gray-800">{d.nome}</span>
+                    <span className="ml-3 text-xs text-gray-400 font-mono">{d.id.slice(0, 8)}…</span>
+                  </div>
+                  <button
+                    onClick={() => setConfirmandoDelete(d.id)}
+                    className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                    title="Excluir dupla"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+                {confirmandoDelete === d.id && (
+                  <div className="mt-1 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="text-sm font-semibold text-red-700">Excluir "{d.nome}"?</p>
+                      <button onClick={() => setConfirmandoDelete(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+                    </div>
+                    <p className="text-xs text-red-600 mb-3">
+                      Todos os pacientes, consultas e dados desta dupla serão apagados permanentemente. Esta ação não pode ser desfeita.
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmandoDelete(null)}
+                        className="flex-1 text-xs font-medium py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white">
+                        Cancelar
+                      </button>
+                      <button onClick={() => handleDelete(d.id)} disabled={deletando}
+                        className="flex-1 text-xs font-semibold py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg transition-colors flex justify-center items-center gap-1.5">
+                        {deletando ? <Loader size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        {deletando ? 'Excluindo...' : 'Sim, excluir tudo'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

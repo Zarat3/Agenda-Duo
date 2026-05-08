@@ -42,12 +42,33 @@ export const Prontuario = () => {
   const fromAgenda = location.state?.from === 'agenda';
   const {
     pacientes, consultas, plano, nomes,
-    updatePacienteAlertas, updateAnamnese,
+    updatePaciente, updatePacienteAlertas, updateAnamnese,
     addPlanoItem, updatePlanoStatus, deletePlanoItem,
     updateConsultaFicha, updateConsultaDescricao,
   } = useAppData();
 
   const paciente = pacientes.find(p => p.id === id);
+
+  // ── Editar perfil ─────────────────────────────────────
+  const [editandoPerfil, setEditandoPerfil] = useState(false);
+  const [perfilForm, setPerfilForm] = useState({ nome: '', telefone: '', idade: '' });
+  const [salvandoPerfil, setSalvandoPerfil] = useState(false);
+
+  const iniciarEdicaoPerfil = () => {
+    setPerfilForm({ nome: paciente.nome, telefone: paciente.telefone, idade: String(paciente.idade) });
+    setEditandoPerfil(true);
+  };
+
+  const salvarPerfil = async () => {
+    if (!perfilForm.nome || !perfilForm.telefone || !perfilForm.idade) return;
+    setSalvandoPerfil(true);
+    try {
+      await updatePaciente(id, perfilForm);
+      setEditandoPerfil(false);
+    } finally {
+      setSalvandoPerfil(false);
+    }
+  };
 
   // ── Alertas ───────────────────────────────────────────
   const [editandoAlertas, setEditandoAlertas] = useState(false);
@@ -190,8 +211,48 @@ export const Prontuario = () => {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">{paciente.nome}</h1>
-                <p className="text-sm text-gray-500 mt-0.5">{paciente.telefone} · {paciente.idade} anos</p>
+                {editandoPerfil ? (
+                  <div className="space-y-2">
+                    <input type="text" value={perfilForm.nome}
+                      onChange={e => setPerfilForm(f => ({ ...f, nome: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-[#800000]"
+                      placeholder="Nome completo"
+                    />
+                    <div className="flex gap-2">
+                      <input type="text" value={perfilForm.telefone}
+                        onChange={e => setPerfilForm(f => ({ ...f, telefone: e.target.value }))}
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#800000]"
+                        placeholder="Telefone"
+                      />
+                      <input type="number" value={perfilForm.idade}
+                        onChange={e => setPerfilForm(f => ({ ...f, idade: e.target.value }))}
+                        className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#800000]"
+                        placeholder="Idade"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={salvarPerfil} disabled={salvandoPerfil}
+                        className="flex items-center gap-1 bg-[#800000] hover:bg-[#660000] disabled:bg-gray-400 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
+                        <Check size={12} /> {salvandoPerfil ? 'Salvando...' : 'Salvar'}
+                      </button>
+                      <button onClick={() => setEditandoPerfil(false)}
+                        className="text-xs text-gray-500 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-2xl font-bold text-gray-800">{paciente.nome}</h1>
+                      <button onClick={iniciarEdicaoPerfil}
+                        className="text-gray-400 hover:text-[#800000] transition-colors">
+                        <Pencil size={14} />
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-0.5">{paciente.telefone} · {paciente.idade} anos</p>
+                  </div>
+                )}
               </div>
               {/* Stats */}
               <div className="flex gap-3">
