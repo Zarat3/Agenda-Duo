@@ -119,7 +119,9 @@ export const Confirmar = () => {
           </div>
           <div className="flex items-center gap-3">
             <Clock size={16} className="text-[#800000] shrink-0" />
-            <span className="text-sm font-semibold text-gray-700">{consulta.horario}</span>
+            <span className="text-sm font-semibold text-gray-700">
+              {consulta.horario_fim ? `${consulta.horario} – ${consulta.horario_fim}` : consulta.horario}
+            </span>
           </div>
         </div>
 

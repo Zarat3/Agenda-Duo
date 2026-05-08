@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import {
   startOfWeek, addDays, addWeeks, subWeeks,
-  isToday, isSameDay, format, parseISO,
+  isToday, isSameDay, isTomorrow, format, parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -216,7 +216,7 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
 
 /* ─── Dashboard ────────────────────────────────────────── */
 export const Dashboard = () => {
-  const { consultas, pacientes, nomes, configuracoes, diasBloqueados, updateConsulta, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
+  const { consultas, pacientes, nomes, configuracoes, diasBloqueados, feriadosNacionais, updateConsulta, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
   const navigate = useNavigate();
 
   // Desktop: semana
@@ -227,15 +227,6 @@ export const Dashboard = () => {
   const [filtro, setFiltro] = useState({ 'Estudante A': true, 'Estudante B': true });
   const [popup, setPopup]   = useState(null);
   const [modalDia, setModalDia] = useState(null);
-  const [feriadosNacionais, setFeriadosNacionais] = useState([]);
-
-  useEffect(() => {
-    const ano = new Date().getFullYear();
-    fetch(`https://brasilapi.com.br/api/feriados/v1/${ano}`)
-      .then(r => r.json())
-      .then(data => Array.isArray(data) && setFeriadosNacionais(data))
-      .catch(() => {});
-  }, []);
 
   const TURNOS = TURNOS_BASE.map(t => ({
     ...t, slots: t.slots.filter(s => configuracoes.horariosAtivos.includes(s)),
@@ -288,22 +279,29 @@ export const Dashboard = () => {
     if (pac) setPopup({ consulta: c, paciente: pac });
   };
 
+  const normalizePhone = (tel) => {
+    let num = tel.replace(/\D/g, '');
+    if (num.startsWith('55') && num.length >= 12) num = num.slice(2);
+    return num;
+  };
+
   const handleWhatsApp = (pac, c) => {
     let dataFmt = c.data;
     try { dataFmt = format(parseISO(c.data), 'dd/MM/yyyy'); } catch {}
+    const horarioDisplay = c.horario_fim ? `${c.horario} – ${c.horario_fim}` : c.horario;
     const link = `${window.location.origin}/confirmar/${c.id}`;
-    const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nSua consulta odontológica está marcada para *${dataFmt}* às *${c.horario}*.\n\nConfirme sua presença pelo link abaixo:\n${link}`;
-    const num  = pac.telefone.replace(/\D/g, '');
-    window.open(`https://wa.me/55${num}?text=${encodeURIComponent(text)}`, '_blank');
+    const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nSua consulta odontológica está marcada para *${dataFmt}* às *${horarioDisplay}*.\n\nConfirme sua presença pelo link abaixo:\n${link}`;
+    window.open(`https://wa.me/55${normalizePhone(pac.telefone)}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleWhatsAppLembrete = (pac, c) => {
     let dataFmt = c.data;
-    try { dataFmt = format(parseISO(c.data), "dd/MM/yyyy"); } catch {}
+    try { dataFmt = format(parseISO(c.data), 'dd/MM/yyyy'); } catch {}
     const horarioDisplay = c.horario_fim ? `${c.horario} – ${c.horario_fim}` : c.horario;
-    const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nLembrete: sua consulta odontológica é *amanhã*, dia *${dataFmt}* às *${horarioDisplay}*.\nTe esperamos! 😊`;
-    const num  = pac.telefone.replace(/\D/g, '');
-    window.open(`https://wa.me/55${num}?text=${encodeURIComponent(text)}`, '_blank');
+    let amanha = '';
+    try { amanha = isTomorrow(parseISO(c.data)) ? 'amanhã, ' : ''; } catch {}
+    const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nLembrete: sua consulta odontológica é ${amanha}dia *${dataFmt}* às *${horarioDisplay}*.\nTe esperamos! 😊`;
+    window.open(`https://wa.me/55${normalizePhone(pac.telefone)}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleStatusChange = (novoStatus) => {

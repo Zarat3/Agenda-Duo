@@ -17,6 +17,7 @@ export const AppDataProvider = ({ children, duoId }) => {
     diasAtivos: [1,2,3,4,5,6],
   });
   const [diasBloqueados, setDiasBloqueados] = useState([]);
+  const [feriadosNacionais, setFeriadosNacionais] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,6 +57,12 @@ export const AppDataProvider = ({ children, duoId }) => {
     };
 
     loadData();
+
+    const ano = new Date().getFullYear();
+    fetch(`https://brasilapi.com.br/api/feriados/v1/${ano}`)
+      .then(r => r.json())
+      .then(data => Array.isArray(data) && setFeriadosNacionais(data))
+      .catch(() => {});
   }, [duoId]);
 
   const addPaciente = async (paciente) => {
@@ -281,7 +288,7 @@ export const AppDataProvider = ({ children, duoId }) => {
 
   return (
     <AppDataContext.Provider value={{
-      pacientes, consultas, plano, nomes, configuracoes, diasBloqueados, loading,
+      pacientes, consultas, plano, nomes, configuracoes, diasBloqueados, feriadosNacionais, loading,
       addPaciente, deletePaciente, updatePaciente, updatePacienteAlertas, updateAnamnese,
       addConsulta, updateConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha, deleteConsulta,
       updateNomes, updateConfiguracoes,

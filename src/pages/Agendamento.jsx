@@ -121,7 +121,7 @@ const HorarioPicker = ({ inicio, fim, onConfirm, onClose, horariosAtivos }) => {
 };
 
 export const Agendamento = () => {
-  const { pacientes, addConsulta, nomes, configuracoes, diasBloqueados } = useAppData();
+  const { pacientes, addConsulta, nomes, configuracoes, diasBloqueados, feriadosNacionais } = useAppData();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -153,6 +153,10 @@ export const Agendamento = () => {
     }
     if (diasBloqueados.some(d => d.data === form.data)) {
       setErro('Este dia está bloqueado para agendamentos. Escolha outra data.');
+      return;
+    }
+    if (feriadosNacionais.some(f => f.date === form.data)) {
+      setErro('Esta data é um feriado nacional. Escolha outra data.');
       return;
     }
     if (form.data) {
