@@ -63,6 +63,15 @@ export const AppDataProvider = ({ children, duoId }) => {
       .then(r => r.json())
       .then(data => Array.isArray(data) && setFeriadosNacionais(data))
       .catch(() => {});
+
+    const channel = supabase
+      .channel(`consultas-rt-${duoId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'consultas', filter: `duo_id=eq.${duoId}` },
+        (payload) => setConsultas(prev => prev.map(c => c.id === payload.new.id ? mapConsulta(payload.new) : c))
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [duoId]);
 
   const addPaciente = async (paciente) => {

@@ -46,6 +46,7 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
   const [editando, setEditando] = React.useState(false);
   const [editForm, setEditForm] = React.useState({ data: c.data, horario: c.horario, horario_fim: c.horario_fim || '', dupla: c.dupla });
   const [salvandoEdit, setSalvandoEdit] = React.useState(false);
+  const [erroEdit, setErroEdit] = React.useState('');
   const nomeDupla  = c.dupla === 'Estudante A' ? nomes.estudanteA : nomes.estudanteB;
   const dotColor   = DOT[c.dupla] || 'bg-gray-400';
   let dataFmt = c.data;
@@ -154,12 +155,18 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
                   </select>
                 </div>
               </div>
+              {erroEdit && <p className="text-xs text-[#C94C4C] font-medium">{erroEdit}</p>}
               <div className="flex gap-2">
-                <button disabled={salvandoEdit} onClick={async () => { setSalvandoEdit(true); await onSaveEdit(editForm); setSalvandoEdit(false); setEditando(false); }}
+                <button disabled={salvandoEdit} onClick={async () => {
+                  setSalvandoEdit(true); setErroEdit('');
+                  try { await onSaveEdit(editForm); setEditando(false); }
+                  catch (err) { setErroEdit(err.message); }
+                  finally { setSalvandoEdit(false); }
+                }}
                   className="flex-1 bg-[#800000] hover:bg-[#660000] disabled:bg-gray-300 text-white text-xs font-semibold py-2 rounded-lg">
                   {salvandoEdit ? 'Salvando...' : 'Salvar'}
                 </button>
-                <button onClick={() => setEditando(false)}
+                <button onClick={() => { setEditando(false); setErroEdit(''); }}
                   className="flex-1 border border-gray-200 text-gray-500 text-xs font-medium py-2 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
@@ -513,55 +520,52 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {/* Turnos do dia */}
-        {isDiaIndisponivel(diaStr) ? (
+        {/* Banner de dia bloqueado/feriado (compacto) */}
+        {isDiaIndisponivel(diaStr) && (
           <button onClick={() => setModalDia({ dateStr: diaStr, label: format(diaAtual, "EEE, dd 'de' MMM", { locale: ptBR }) })}
-            className="w-full bg-white rounded-2xl border border-[#DADADA] shadow-card p-8 flex flex-col items-center gap-3 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-              {isFeriado(diaStr) ? <span className="text-2xl">🎉</span> : <Lock size={20} className="text-gray-400" />}
-            </div>
-            <div>
-              <p className="font-bold text-[#1A1A1A] text-sm">
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 flex items-center gap-3 text-left">
+            <span className="text-lg">{isFeriado(diaStr) ? '🎉' : '🔒'}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-gray-600">
                 {isFeriado(diaStr) ? infoDia(diaStr)?.motivo : 'Dia bloqueado'}
+                {!isFeriado(diaStr) && infoDia(diaStr)?.motivo ? ` · ${infoDia(diaStr).motivo}` : ''}
               </p>
-              {!isFeriado(diaStr) && infoDia(diaStr)?.motivo && (
-                <p className="text-xs text-[#666666] mt-1">{infoDia(diaStr).motivo}</p>
-              )}
-              <p className="text-xs text-[#666666] mt-2 underline">Toque para desbloquear</p>
+              {!isFeriado(diaStr) && <p className="text-[10px] text-gray-400">Toque para gerenciar</p>}
             </div>
           </button>
-        ) : (
-          <div className="space-y-3">
-            {TURNOS.map(turno => (
-              <div key={turno.label} className="bg-white rounded-xl border border-[#DADADA] shadow-card overflow-hidden">
-                <div className={`px-4 py-2 ${turno.bg}`}>
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{turno.label}</span>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {turno.slots.map(horario => {
-                    const items = getCell(diaStr, horario);
-                    return (
-                      <div key={horario} className="flex gap-3 px-4 py-2.5 items-start">
-                        <span className="text-xs font-semibold text-gray-400 w-12 shrink-0 pt-0.5">{horario}</span>
-                        <div className="flex-1 min-w-0">
-                          {items.length > 1 && (
-                            <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-0.5 mb-1.5 inline-flex items-center gap-1">
-                              ⚡ {items.length} pacientes
-                            </p>
-                          )}
-                          {items.length > 0
-                            ? items.map(c => <ConsultaCard key={c.id} c={c} horarioAtual={horario} />)
-                            : <p className="text-xs text-gray-300 italic">Livre</p>
-                          }
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
         )}
+
+        {/* Turnos do dia — sempre visíveis */}
+        <div className="space-y-3">
+          {TURNOS.map(turno => (
+            <div key={turno.label} className="bg-white rounded-xl border border-[#DADADA] shadow-card overflow-hidden">
+              <div className={`px-4 py-2 ${turno.bg}`}>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{turno.label}</span>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {turno.slots.map(horario => {
+                  const items = getCell(diaStr, horario);
+                  return (
+                    <div key={horario} className="flex gap-3 px-4 py-2.5 items-start">
+                      <span className="text-xs font-semibold text-gray-400 w-12 shrink-0 pt-0.5">{horario}</span>
+                      <div className="flex-1 min-w-0">
+                        {items.length > 1 && (
+                          <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-2 py-0.5 mb-1.5 inline-flex items-center gap-1">
+                            ⚡ {items.length} pacientes
+                          </p>
+                        )}
+                        {items.length > 0
+                          ? items.map(c => <ConsultaCard key={c.id} c={c} horarioAtual={horario} />)
+                          : <p className="text-xs text-gray-300 italic">Livre</p>
+                        }
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ════════════════════════════════════════════════
@@ -665,31 +669,29 @@ export const Dashboard = () => {
                               className={`p-1 border-r border-gray-100 last:border-r-0 min-h-[48px] ${
                                 bloqueado ? 'bg-gray-50' : isToday(date) ? 'bg-[#fff9f9]' : ''
                               }`}>
-                              {bloqueado ? null : (
-                                <>
-                                  {items.length > 1 && (
-                                    <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 mb-0.5 inline-block">
-                                      ⚡{items.length}
-                                    </span>
-                                  )}
-                                  {items.map(c => {
-                                    const pac = pacientes.find(p => p.id === c.pacienteId);
-                                    if (!pac) return null;
-                                    const cls = STATUS_CARD[c.status] || STATUS_CARD['Realizado'];
-                                    const isContinuacao = horario !== c.horario;
-                                    return (
-                                      <button key={c.id} onClick={() => abrirPopup(c)}
-                                        className={`w-full text-left rounded px-1.5 py-1 mb-1 border-l-2 text-[11px] leading-tight hover:brightness-95 transition-all ${cls} ${isContinuacao ? 'opacity-50' : ''}`}>
-                                        <div className="flex items-center gap-1 min-w-0">
-                                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT[c.dupla] || 'bg-gray-400'}`} />
-                                          <span className="font-semibold truncate">{isContinuacao ? '↓' : pac.nome.split(' ')[0]}</span>
-                                        </div>
-                                        {!isContinuacao && <p className="text-[10px] opacity-70 truncate pl-2.5">{c.status}</p>}
-                                      </button>
-                                    );
-                                  })}
-                                </>
-                              )}
+                              <>
+                                {items.length > 1 && (
+                                  <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 mb-0.5 inline-block">
+                                    ⚡{items.length}
+                                  </span>
+                                )}
+                                {items.map(c => {
+                                  const pac = pacientes.find(p => p.id === c.pacienteId);
+                                  if (!pac) return null;
+                                  const cls = STATUS_CARD[c.status] || STATUS_CARD['Realizado'];
+                                  const isContinuacao = horario !== c.horario;
+                                  return (
+                                    <button key={c.id} onClick={() => abrirPopup(c)}
+                                      className={`w-full text-left rounded px-1.5 py-1 mb-1 border-l-2 text-[11px] leading-tight hover:brightness-95 transition-all ${cls} ${isContinuacao ? 'opacity-50' : ''}`}>
+                                      <div className="flex items-center gap-1 min-w-0">
+                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT[c.dupla] || 'bg-gray-400'}`} />
+                                        <span className="font-semibold truncate">{isContinuacao ? '↓' : pac.nome.split(' ')[0]}</span>
+                                      </div>
+                                      {!isContinuacao && <p className="text-[10px] opacity-70 truncate pl-2.5">{c.status}</p>}
+                                    </button>
+                                  );
+                                })}
+                              </>
                             </div>
                           );
                         })}
@@ -720,6 +722,16 @@ export const Dashboard = () => {
           onStatusChange={handleStatusChange}
           onDelete={() => { deleteConsulta(popup.consulta.id).catch(console.error); setPopup(null); }}
           onSaveEdit={async (editForm) => {
+            if (diasBloqueados.some(d => d.data === editForm.data))
+              throw new Error('Este dia está bloqueado para agendamentos.');
+            if (feriadosNacionais.some(f => f.date === editForm.data))
+              throw new Error('Esta data é um feriado nacional.');
+            const jsDay = new Date(editForm.data + 'T12:00:00').getDay();
+            const dayNum = jsDay === 0 ? 7 : jsDay;
+            if (!configuracoes.diasAtivos.includes(dayNum))
+              throw new Error('A dupla não atende neste dia da semana.');
+            if (!configuracoes.horariosAtivos.includes(editForm.horario))
+              throw new Error('Este horário não está disponível nas configurações.');
             await updateConsulta(popup.consulta.id, editForm);
             setPopup(prev => prev ? { ...prev, consulta: { ...prev.consulta, ...editForm, horario_fim: editForm.horario_fim || null } } : null);
           }}
