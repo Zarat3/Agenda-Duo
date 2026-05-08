@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { supabaseNoSession } from '../lib/supabaseNoSession';
 import { ShieldCheck, Plus, Users, CheckCircle, AlertCircle, Loader, Trash2, X } from 'lucide-react';
 
 const emptyForm = {
@@ -41,33 +40,24 @@ export const Admin = () => {
 
     setSalvando(true);
     try {
-      // 1. Criar dupla no banco
-      const { data: dupla, error: errDupla } = await supabase
-        .from('duplas')
-        .insert([{ nome: form.nomeDupla }])
-        .select()
-        .single();
-      if (errDupla) throw new Error(`Erro ao criar dupla: ${errDupla.message}`);
-
-      // 2. Criar estudante A
-      const { error: errA } = await supabaseNoSession.auth.signUp({
-        email: form.emailA,
-        password: form.senhaA,
-        options: { data: { duo_id: dupla.id } },
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/criar-dupla', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          nomeDupla: form.nomeDupla,
+          emailA: form.emailA, senhaA: form.senhaA,
+          emailB: form.emailB, senhaB: form.senhaB,
+        }),
       });
-      if (errA) throw new Error(`Erro ao criar estudante A: ${errA.message}`);
-
-      // 3. Criar estudante B
-      const { error: errB } = await supabaseNoSession.auth.signUp({
-        email: form.emailB,
-        password: form.senhaB,
-        options: { data: { duo_id: dupla.id } },
-      });
-      if (errB) throw new Error(`Erro ao criar estudante B: ${errB.message}`);
-
-      setDuplas(prev => [...prev, dupla]);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro desconhecido');
+      setDuplas(prev => [...prev, json.dupla]);
       setForm(emptyForm);
-      setEstado({ tipo: 'ok', msg: `Dupla "${dupla.nome}" criada com sucesso!` });
+      setEstado({ tipo: 'ok', msg: `Dupla "${json.dupla.nome}" criada com sucesso!` });
     } catch (err) {
       setEstado({ tipo: 'erro', msg: err.message });
     } finally {
