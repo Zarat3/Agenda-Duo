@@ -3,7 +3,7 @@ import { useAppData } from '../context/AppDataContext';
 import { Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const TURNOS_HORARIOS = [
+const TURNOS_BASE = [
   { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
   { label: 'Tarde', slots: ['13:00', '14:00', '15:00', '16:00'] },
   { label: 'Noite', slots: ['16:20', '17:20', '18:20'] },
@@ -14,7 +14,11 @@ const labelCls = 'block text-sm font-semibold text-[#1A1A1A] mb-1.5';
 
 const getTurnoIdx = (slot) => TURNOS_HORARIOS.findIndex(t => t.slots.includes(slot));
 
-const HorarioPicker = ({ inicio, fim, onConfirm, onClose }) => {
+const HorarioPicker = ({ inicio, fim, onConfirm, onClose, horariosAtivos }) => {
+  const TURNOS_HORARIOS = TURNOS_BASE.map(t => ({
+    ...t, slots: t.slots.filter(s => !horariosAtivos || horariosAtivos.includes(s)),
+  })).filter(t => t.slots.length > 0);
+
   const [tempStart, setTempStart] = useState(inicio || '');
   const [tempEnd, setTempEnd]     = useState(fim || '');
 
@@ -117,7 +121,7 @@ const HorarioPicker = ({ inicio, fim, onConfirm, onClose }) => {
 };
 
 export const Agendamento = () => {
-  const { pacientes, addConsulta, nomes, diasBloqueados } = useAppData();
+  const { pacientes, addConsulta, nomes, configuracoes, diasBloqueados } = useAppData();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -150,6 +154,16 @@ export const Agendamento = () => {
     if (diasBloqueados.some(d => d.data === form.data)) {
       setErro('Este dia está bloqueado para agendamentos. Escolha outra data.');
       return;
+    }
+    if (form.data) {
+      try {
+        const jsDay = new Date(form.data + 'T12:00:00').getDay();
+        const day = jsDay === 0 ? 7 : jsDay;
+        if (!configuracoes.diasAtivos.includes(day)) {
+          setErro('A dupla não atende neste dia da semana. Escolha outra data.');
+          return;
+        }
+      } catch {}
     }
 
     setSalvando(true);
@@ -284,6 +298,7 @@ export const Agendamento = () => {
         <HorarioPicker
           inicio={form.horario}
           fim={form.horario_fim}
+          horariosAtivos={configuracoes.horariosAtivos}
           onConfirm={(h, hf) => setForm(f => ({ ...f, horario: h, horario_fim: hf }))}
           onClose={() => setPickerAberto(false)}
         />

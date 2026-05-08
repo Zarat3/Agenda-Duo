@@ -10,6 +10,12 @@ export const AppDataProvider = ({ children, duoId }) => {
   const [consultas, setConsultas] = useState([]);
   const [plano, setPlano] = useState([]);
   const [nomes, setNomes] = useState({ estudanteA: 'Estudante A', estudanteB: 'Estudante B' });
+  const [configuracoes, setConfiguracoes] = useState({
+    nomeClinica: 'Clínica Odontológica Universitária',
+    turma: '',
+    horariosAtivos: ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','16:20','17:20','18:20'],
+    diasAtivos: [1,2,3,4,5,6],
+  });
   const [diasBloqueados, setDiasBloqueados] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +42,15 @@ export const AppDataProvider = ({ children, duoId }) => {
       if (pacs) setPacientes(pacs);
       if (cons) setConsultas(cons.map(mapConsulta));
       if (planos) setPlano(planos);
-      if (config) setNomes({ estudanteA: config.estudante_a, estudanteB: config.estudante_b });
+      if (config) {
+        setNomes({ estudanteA: config.estudante_a, estudanteB: config.estudante_b });
+        setConfiguracoes({
+          nomeClinica: config.nome_clinica || 'Clínica Odontológica Universitária',
+          turma: config.turma || '',
+          horariosAtivos: config.horarios_ativos || ALL_SLOTS,
+          diasAtivos: config.dias_ativos || [1,2,3,4,5,6],
+        });
+      }
       if (bloqueados) setDiasBloqueados(bloqueados);
       setLoading(false);
     };
@@ -173,6 +187,26 @@ export const AppDataProvider = ({ children, duoId }) => {
     setConsultas(prev => prev.map(c => c.id === id ? { ...c, dente, procedimento, proxima_sessao } : c));
   };
 
+  const updateConfiguracoes = async ({ estudanteA, estudanteB, nomeClinica, turma, horariosAtivos, diasAtivos }) => {
+    const { error } = await supabase
+      .from('configuracoes')
+      .upsert(
+        {
+          duo_id: duoId,
+          estudante_a: estudanteA,
+          estudante_b: estudanteB,
+          nome_clinica: nomeClinica,
+          turma: turma || null,
+          horarios_ativos: horariosAtivos,
+          dias_ativos: diasAtivos,
+        },
+        { onConflict: 'duo_id' }
+      );
+    if (error) throw new Error(error.message);
+    setNomes({ estudanteA, estudanteB });
+    setConfiguracoes({ nomeClinica, turma, horariosAtivos, diasAtivos });
+  };
+
   const updateNomes = async (estudanteA, estudanteB) => {
     const { error } = await supabase
       .from('configuracoes')
@@ -237,10 +271,10 @@ export const AppDataProvider = ({ children, duoId }) => {
 
   return (
     <AppDataContext.Provider value={{
-      pacientes, consultas, plano, nomes, diasBloqueados, loading,
+      pacientes, consultas, plano, nomes, configuracoes, diasBloqueados, loading,
       addPaciente, updatePaciente, updatePacienteAlertas, updateAnamnese,
       addConsulta, updateConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha, deleteConsulta,
-      updateNomes,
+      updateNomes, updateConfiguracoes,
       addPlanoItem, updatePlanoStatus, deletePlanoItem,
       bloquearDia, desbloquearDia,
     }}>

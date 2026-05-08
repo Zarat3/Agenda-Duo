@@ -9,6 +9,7 @@ export const Confirmar = () => {
   const { id } = useParams();
   const [consulta, setConsulta] = useState(null);
   const [paciente, setPaciente] = useState(null);
+  const [clinicaInfo, setClinicaInfo] = useState({ nomeClinica: 'Clínica Odontológica Universitária', turma: '' });
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [acao, setAcao] = useState(null);
@@ -33,6 +34,15 @@ export const Confirmar = () => {
         .single();
 
       setPaciente(p);
+
+      const { data: cfg } = await supabase
+        .from('configuracoes')
+        .select('nome_clinica, turma')
+        .eq('duo_id', c.duo_id)
+        .single();
+
+      if (cfg) setClinicaInfo({ nomeClinica: cfg.nome_clinica || 'Clínica Odontológica Universitária', turma: cfg.turma || '' });
+
       setLoading(false);
     };
 
@@ -151,7 +161,9 @@ export const Confirmar = () => {
 
         {erroAcao && <p className="mt-3 text-xs text-red-500">{erroAcao}</p>}
 
-        <p className="text-[11px] text-gray-300 mt-6">Clínica Odontológica Universitária · Univassouras</p>
+        <p className="text-[11px] text-gray-300 mt-6">
+          {clinicaInfo.nomeClinica}{clinicaInfo.turma ? ` · ${clinicaInfo.turma}` : ''}
+        </p>
       </div>
     </div>
   );

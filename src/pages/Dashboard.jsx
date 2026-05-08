@@ -11,10 +11,10 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const TURNOS = [
+const TURNOS_BASE = [
   { label: 'Manhã',  slots: ['08:00', '09:00', '10:00', '11:00'], bg: 'bg-blue-50'   },
   { label: 'Tarde',  slots: ['13:00', '14:00', '15:00', '16:00'], bg: 'bg-orange-50' },
-  { label: 'Noite',  slots: ['16:20', '17:00', '17:20', '18:20'], bg: 'bg-indigo-50' },
+  { label: 'Noite',  slots: ['16:20', '17:20', '18:20'],          bg: 'bg-indigo-50' },
 ];
 
 const STATUS_CARD = {
@@ -216,7 +216,7 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
 
 /* ─── Dashboard ────────────────────────────────────────── */
 export const Dashboard = () => {
-  const { consultas, pacientes, nomes, diasBloqueados, updateConsulta, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
+  const { consultas, pacientes, nomes, configuracoes, diasBloqueados, updateConsulta, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
   const navigate = useNavigate();
 
   // Desktop: semana
@@ -237,9 +237,14 @@ export const Dashboard = () => {
       .catch(() => {});
   }, []);
 
+  const TURNOS = TURNOS_BASE.map(t => ({
+    ...t, slots: t.slots.filter(s => configuracoes.horariosAtivos.includes(s)),
+  })).filter(t => t.slots.length > 0);
+
   const isDiaBloqueado  = (ds) => diasBloqueados.some(d => d.data === ds);
   const isFeriado       = (ds) => feriadosNacionais.some(f => f.date === ds);
-  const isDiaIndisponivel = (ds) => isDiaBloqueado(ds) || isFeriado(ds);
+  const isDiaInativo    = (ds) => { try { const d = parseISO(ds); return !configuracoes.diasAtivos.includes(d.getDay() === 0 ? 7 : d.getDay()); } catch { return false; } };
+  const isDiaIndisponivel = (ds) => isDiaBloqueado(ds) || isFeriado(ds) || isDiaInativo(ds);
   const infoDia = (ds) => {
     const f = feriadosNacionais.find(f => f.date === ds);
     if (f) return { tipo: 'nacional', motivo: f.name };
