@@ -69,6 +69,16 @@ export const AppDataProvider = ({ children, duoId }) => {
     return data;
   };
 
+  const deletePaciente = async (id) => {
+    await supabase.from('plano_tratamento').delete().eq('paciente_id', id).eq('duo_id', duoId);
+    await supabase.from('consultas').delete().eq('paciente_id', id).eq('duo_id', duoId);
+    const { error } = await supabase.from('pacientes').delete().eq('id', id).eq('duo_id', duoId);
+    if (error) throw new Error(error.message);
+    setPacientes(prev => prev.filter(p => p.id !== id));
+    setConsultas(prev => prev.filter(c => c.pacienteId !== id));
+    setPlano(prev => prev.filter(p => p.paciente_id !== id));
+  };
+
   const updatePaciente = async (id, { nome, telefone, idade }) => {
     const { error } = await supabase
       .from('pacientes')
@@ -272,7 +282,7 @@ export const AppDataProvider = ({ children, duoId }) => {
   return (
     <AppDataContext.Provider value={{
       pacientes, consultas, plano, nomes, configuracoes, diasBloqueados, loading,
-      addPaciente, updatePaciente, updatePacienteAlertas, updateAnamnese,
+      addPaciente, deletePaciente, updatePaciente, updatePacienteAlertas, updateAnamnese,
       addConsulta, updateConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha, deleteConsulta,
       updateNomes, updateConfiguracoes,
       addPlanoItem, updatePlanoStatus, deletePlanoItem,

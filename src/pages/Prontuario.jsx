@@ -42,7 +42,7 @@ export const Prontuario = () => {
   const fromAgenda = location.state?.from === 'agenda';
   const {
     pacientes, consultas, plano, nomes,
-    updatePaciente, updatePacienteAlertas, updateAnamnese,
+    deletePaciente, updatePaciente, updatePacienteAlertas, updateAnamnese,
     addPlanoItem, updatePlanoStatus, deletePlanoItem,
     updateConsultaFicha, updateConsultaDescricao,
   } = useAppData();
@@ -67,6 +67,21 @@ export const Prontuario = () => {
       setEditandoPerfil(false);
     } finally {
       setSalvandoPerfil(false);
+    }
+  };
+
+  // ── Excluir paciente ─────────────────────────────────
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const handleExcluirPaciente = async () => {
+    setExcluindo(true);
+    try {
+      await deletePaciente(id);
+      navigate('/pacientes');
+    } catch (err) {
+      console.error(err);
+      setExcluindo(false);
     }
   };
 
@@ -254,8 +269,8 @@ export const Prontuario = () => {
                   </div>
                 )}
               </div>
-              {/* Stats */}
-              <div className="flex gap-3">
+              {/* Stats + excluir */}
+              <div className="flex gap-3 items-start">
                 <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-center">
                   <p className="text-xl font-bold text-[#800000]">{consultasDoPaciente.length}</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">Consultas</p>
@@ -264,8 +279,35 @@ export const Prontuario = () => {
                   <p className="text-xl font-bold text-[#800000]">{totalConcluidos}/{planoDoPaciente.length}</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">Plano</p>
                 </div>
+                <button
+                  onClick={() => setConfirmandoExclusao(true)}
+                  title="Excluir paciente"
+                  className="text-gray-300 hover:text-[#C94C4C] transition-colors p-1 mt-1"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
+
+            {/* Excluir paciente */}
+            {confirmandoExclusao ? (
+              <div className="mt-4 bg-[#FDECEA] border border-[#C94C4C]/30 rounded-xl px-4 py-3">
+                <p className="text-sm font-semibold text-[#C94C4C] mb-1">Excluir este paciente?</p>
+                <p className="text-xs text-[#C94C4C]/80 mb-3">
+                  Todas as consultas e plano de tratamento de <strong>{paciente.nome}</strong> serão apagados permanentemente.
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmandoExclusao(false)}
+                    className="flex-1 text-xs font-medium py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white">
+                    Cancelar
+                  </button>
+                  <button onClick={handleExcluirPaciente} disabled={excluindo}
+                    className="flex-1 text-xs font-semibold py-2 bg-[#C94C4C] hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg transition-colors">
+                    {excluindo ? 'Excluindo...' : 'Sim, excluir tudo'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {/* Alertas */}
             <div className="mt-4">
