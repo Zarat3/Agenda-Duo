@@ -12,12 +12,12 @@ const TURNOS_BASE = [
 const inputCls = 'w-full border border-[#DADADA] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000] text-[#1A1A1A] bg-white transition-shadow';
 const labelCls = 'block text-sm font-semibold text-[#1A1A1A] mb-1.5';
 
-const getTurnoIdx = (slot) => TURNOS_HORARIOS.findIndex(t => t.slots.includes(slot));
-
 const HorarioPicker = ({ inicio, fim, onConfirm, onClose, horariosAtivos }) => {
   const TURNOS_HORARIOS = TURNOS_BASE.map(t => ({
     ...t, slots: t.slots.filter(s => !horariosAtivos || horariosAtivos.includes(s)),
   })).filter(t => t.slots.length > 0);
+
+  const getTurnoIdx = (slot) => TURNOS_HORARIOS.findIndex(t => t.slots.includes(slot));
 
   const [tempStart, setTempStart] = useState(inicio || '');
   const [tempEnd, setTempEnd]     = useState(fim || '');
