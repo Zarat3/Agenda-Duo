@@ -8,26 +8,35 @@ webpush.setVapidDetails(
 );
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin || '';
+  const allowed = process.env.APP_URL || '';
+  res.setHeader('Access-Control-Allow-Origin', allowed || origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Vary', 'Origin');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
   const { consulta_id } = req.body ?? {};
   if (!consulta_id) return res.status(400).json({ error: 'consulta_id obrigatório' });
 
+  // service role bypasses RLS — nunca expor essa chave no cliente
   const supabase = createClient(
     process.env.VITE_SUPABASE_URL,
-    process.env.VITE_SUPABASE_ANON_KEY,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
 
   const { data: consulta } = await supabase
     .from('consultas')
-    .select('duo_id, data, horario, paciente_id')
+    .select('duo_id, data, horario, paciente_id, status')
     .eq('id', consulta_id)
     .single();
 
   if (!consulta) return res.status(404).json({ error: 'consulta não encontrada' });
+
+  // só dispara push para consultas realmente confirmadas
+  if (consulta.status !== 'Confirmado') {
+    return res.status(200).json({ sent: 0, reason: 'status não é Confirmado' });
+  }
 
   const { data: paciente } = await supabase
     .from('pacientes')

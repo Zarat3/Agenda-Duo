@@ -86,8 +86,10 @@ export const AppDataProvider = ({ children, duoId }) => {
   };
 
   const deletePaciente = async (id) => {
-    await supabase.from('plano_tratamento').delete().eq('paciente_id', id).eq('duo_id', duoId);
-    await supabase.from('consultas').delete().eq('paciente_id', id).eq('duo_id', duoId);
+    const { error: errPlano } = await supabase.from('plano_tratamento').delete().eq('paciente_id', id).eq('duo_id', duoId);
+    if (errPlano) throw new Error(`Erro ao remover plano: ${errPlano.message}`);
+    const { error: errCons } = await supabase.from('consultas').delete().eq('paciente_id', id).eq('duo_id', duoId);
+    if (errCons) throw new Error(`Erro ao remover consultas: ${errCons.message}`);
     const { error } = await supabase.from('pacientes').delete().eq('id', id).eq('duo_id', duoId);
     if (error) throw new Error(error.message);
     setPacientes(prev => prev.filter(p => p.id !== id));

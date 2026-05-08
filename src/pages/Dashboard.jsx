@@ -472,6 +472,10 @@ export const Dashboard = () => {
                 className="p-1 rounded-lg text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000] transition-colors">
                 <ChevronRight size={16} />
               </button>
+              <button onClick={() => { const hoje = new Date(); setDiaAtual(hoje); setSemanaBaseMobile(startOfWeek(hoje, { weekStartsOn: 1 })); }}
+                className="ml-1 px-2 py-1 text-[10px] font-bold bg-[#800000] text-white rounded-lg">
+                Hoje
+              </button>
             </div>
             <div className="flex gap-1.5">
               {estudantes.map(({ key, nome, dot }) => (
