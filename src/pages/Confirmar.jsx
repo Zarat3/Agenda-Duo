@@ -6,7 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { CheckCircle, XCircle, Calendar, Clock } from 'lucide-react';
 
 export const Confirmar = () => {
-  const { id } = useParams();
+  const { token } = useParams();
   const [consulta, setConsulta] = useState(null);
   const [paciente, setPaciente] = useState(null);
   const [clinicaInfo, setClinicaInfo] = useState({ nomeClinica: 'Clínica Odontológica Universitária', turma: '' });
@@ -20,7 +20,7 @@ export const Confirmar = () => {
       const { data: c, error } = await supabase
         .from('consultas')
         .select('*')
-        .eq('id', id)
+        .eq('confirmation_token', token)
         .single();
 
       if (error || !c) { setNotFound(true); setLoading(false); return; }
@@ -47,7 +47,7 @@ export const Confirmar = () => {
     };
 
     fetchData();
-  }, [id]);
+  }, [token]);
 
   const atualizar = async (novoStatus) => {
     setAcao(novoStatus);
@@ -55,7 +55,7 @@ export const Confirmar = () => {
     const { error } = await supabase
       .from('consultas')
       .update({ status: novoStatus })
-      .eq('id', id);
+      .eq('confirmation_token', token);
 
     if (error) {
       setErroAcao('Erro ao processar. Tente novamente.');
@@ -70,7 +70,7 @@ export const Confirmar = () => {
       fetch('/api/send-push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consulta_id: id }),
+        body: JSON.stringify({ consulta_id: consulta.id }),
       }).catch(() => {});
     }
   };

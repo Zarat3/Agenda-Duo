@@ -87,7 +87,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/confirmar/:id" element={<Confirmar />} />
+          <Route path="/confirmar/:token" element={<Confirmar />} />
           <Route path="/*" element={<AppInner />} />
         </Routes>
       </BrowserRouter>

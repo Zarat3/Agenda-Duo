@@ -296,7 +296,7 @@ export const Dashboard = () => {
     let dataFmt = c.data;
     try { dataFmt = format(parseISO(c.data), 'dd/MM/yyyy'); } catch {}
     const horarioDisplay = c.horario_fim ? `${c.horario} – ${c.horario_fim}` : c.horario;
-    const link = `${window.location.origin}/confirmar/${c.id}`;
+    const link = `${window.location.origin}/confirmar/${c.confirmation_token}`;
     const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nSua consulta odontológica está marcada para *${dataFmt}* às *${horarioDisplay}*.\n\nConfirme sua presença pelo link abaixo:\n${link}`;
     window.open(`https://wa.me/55${normalizePhone(pac.telefone)}?text=${encodeURIComponent(text)}`, '_blank');
   };
