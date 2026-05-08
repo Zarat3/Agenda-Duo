@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, PlusCircle, Settings, LogOut, ShieldCheck, X } from 'lucide-react';
+import { Home, Calendar, Users, PlusCircle, Settings, LogOut, ShieldCheck, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
@@ -31,7 +31,8 @@ export const MobileNav = ({ isAdmin }) => {
   };
 
   const navItems = [
-    { to: '/', icon: Calendar, label: 'Agenda' },
+    { to: '/', icon: Home, label: 'Início' },
+    { to: '/agenda', icon: Calendar, label: 'Agenda' },
     { to: '/pacientes', icon: Users, label: 'Pacientes' },
     { to: '/agendamento', icon: PlusCircle, label: 'Agendar' },
     ...(isAdmin ? [{ to: '/admin', icon: ShieldCheck, label: 'Admin' }] : []),

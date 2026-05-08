@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, PlusCircle, Settings, X, LogOut, ShieldCheck, Bell, BellOff, Smartphone } from 'lucide-react';
+import { Calendar, Users, PlusCircle, Settings, X, LogOut, ShieldCheck, Bell, BellOff, Smartphone, Home } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
@@ -40,7 +40,8 @@ export const Sidebar = ({ isAdmin }) => {
   };
 
   const navItems = [
-    { to: '/', icon: Calendar, label: 'Agenda' },
+    { to: '/', icon: Home, label: 'Início' },
+    { to: '/agenda', icon: Calendar, label: 'Agenda' },
     { to: '/pacientes', icon: Users, label: 'Pacientes' },
     { to: '/agendamento', icon: PlusCircle, label: 'Agendar' },
     ...(isAdmin ? [{ to: '/admin', icon: ShieldCheck, label: 'Admin' }] : []),

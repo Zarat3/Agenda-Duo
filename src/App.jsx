@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { Sidebar } from './components/Sidebar';
 import { MobileNav } from './components/MobileNav';
+import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { Pacientes } from './pages/Pacientes';
 import { Agendamento } from './pages/Agendamento';
@@ -41,7 +42,8 @@ function AppContent() {
         <MobileNav isAdmin={isAdmin} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/agenda" element={<Dashboard />} />
             <Route path="/pacientes" element={<Pacientes />} />
             <Route path="/pacientes/novo" element={<NovoPaciente />} />
             <Route path="/pacientes/:id" element={<Prontuario />} />
