@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import {
   ChevronLeft, ChevronRight, X,
-  Phone, MessageCircle, FileText, AlertTriangle, Lock, LockOpen, Trash2,
+  Phone, MessageCircle, FileText, AlertTriangle, Lock, LockOpen, Trash2, Download,
 } from 'lucide-react';
 import {
   startOfWeek, addDays, addWeeks, subWeeks,
   isToday, isSameDay, isTomorrow, format, parseISO,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { exportAgendaCSV } from '../lib/exportar';
 
 const TURNOS_BASE = [
   { label: 'Manhã',  slots: ['08:00', '09:00', '10:00', '11:00'], bg: 'bg-blue-50'   },
@@ -266,6 +267,9 @@ export const Dashboard = () => {
       return { ...prev, [key]: !prev[key] };
     });
   };
+
+  const weekDates = days.map(d => d.dateStr);
+  const temConsultasSemana = consultas.some(c => weekDates.includes(c.data));
 
   const ALL_SLOTS = ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','16:20','17:20','18:20'];
   const getSlotsInRange = (horario, horario_fim) => {
@@ -617,6 +621,15 @@ export const Dashboard = () => {
               <button onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
                 className="ml-1 px-3 py-1.5 text-xs font-semibold bg-[#800000] text-white rounded-lg hover:bg-[#660000]">
                 Hoje
+              </button>
+              <button
+                onClick={() => exportAgendaCSV({ consultas, pacientes, nomes, weekStart })}
+                disabled={!temConsultasSemana}
+                aria-label="Exportar semana como CSV"
+                title={temConsultasSemana ? 'Exportar semana como CSV' : 'Nenhuma consulta nessa semana'}
+                className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-500 hover:text-[#800000] transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500"
+              >
+                <Download size={16} />
               </button>
             </div>
           </div>

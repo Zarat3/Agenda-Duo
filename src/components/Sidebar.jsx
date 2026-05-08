@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Calendar, Users, PlusCircle, Settings, X, LogOut, ShieldCheck, Bell, BellOff, Smartphone, Home, Building2, Clock } from 'lucide-react';
+import { Calendar, Users, PlusCircle, Settings, X, LogOut, ShieldCheck, Bell, BellOff, Smartphone, Home, Building2, Clock, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { ExportarSection } from './ExportarSection';
 
 const ALL_TURNOS = [
   { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
@@ -31,6 +32,7 @@ export const Sidebar = ({ isAdmin }) => {
   const { subscribed, loading: loadingPush, supported: pushSupported, subscribe, unsubscribe } = usePushNotifications(duoId);
 
   const [modalAberto, setModalAberto] = useState(false);
+  const [modalExportarAberto, setModalExportarAberto] = useState(false);
   const [form, setForm] = useState({});
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
@@ -140,6 +142,14 @@ export const Sidebar = ({ isAdmin }) => {
 
         <div className="p-4 border-t border-[#DADADA] space-y-1">
           <button
+            type="button"
+            onClick={() => setModalExportarAberto(true)}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000] transition-colors"
+          >
+            <Download size={18} />
+            Exportar
+          </button>
+          <button
             onClick={abrirModal}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm text-[#666666] hover:bg-[#F9F9F9] hover:text-[#800000] transition-colors"
           >
@@ -162,6 +172,25 @@ export const Sidebar = ({ isAdmin }) => {
         </div>
       </aside>
 
+      {modalExportarAberto && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-[#DADADA] w-full max-w-md mx-4 flex flex-col max-h-[92vh]">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-[#DADADA] shrink-0">
+              <h2 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2">
+                <Download size={18} className="text-[#800000]" />
+                Exportar
+              </h2>
+              <button onClick={() => setModalExportarAberto(false)} className="text-[#666666] hover:text-[#1A1A1A]">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-6 py-5">
+              <ExportarSection />
+            </div>
+          </div>
+        </div>
+      )}
+
       {modalAberto && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl border border-[#DADADA] w-full max-w-md mx-4 flex flex-col max-h-[92vh]">
@@ -179,6 +208,9 @@ export const Sidebar = ({ isAdmin }) => {
 
             {/* Corpo rolável */}
             <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
+
+              {/* Exportar */}
+              <ExportarSection />
 
               {/* Nomes da dupla */}
               <div>

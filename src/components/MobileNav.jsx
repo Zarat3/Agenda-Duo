@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Calendar, Users, PlusCircle, Settings, LogOut, ShieldCheck, X, Bell, BellOff, Smartphone, Building2, Clock } from 'lucide-react';
+import { Home, Calendar, Users, PlusCircle, Settings, LogOut, ShieldCheck, X, Bell, BellOff, Smartphone, Building2, Clock, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { ExportarSection } from './ExportarSection';
 
 const ALL_TURNOS = [
   { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
@@ -31,6 +32,7 @@ export const MobileNav = ({ isAdmin }) => {
   const { subscribed, loading: loadingPush, supported: pushSupported, subscribe, unsubscribe } = usePushNotifications(duoId);
 
   const [modalAberto, setModalAberto] = useState(false);
+  const [modalExportarAberto, setModalExportarAberto] = useState(false);
   const [form, setForm] = useState({});
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
@@ -116,6 +118,14 @@ export const MobileNav = ({ isAdmin }) => {
       <header className="md:hidden bg-white border-b border-[#DADADA] px-4 py-3 flex justify-between items-center sticky top-0 z-20 shadow-card">
         <img src="/logo-horizontal.svg" alt="DUO" className="h-9" />
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setModalExportarAberto(true)}
+            aria-label="Exportar registros"
+            className="p-2 text-[#666666] hover:text-[#800000] transition-colors rounded-lg hover:bg-[#F9F9F9]"
+          >
+            <Download size={20} />
+          </button>
           <button onClick={abrirModal} className="p-2 text-[#666666] hover:text-[#800000] transition-colors rounded-lg hover:bg-[#F9F9F9]">
             <Settings size={20} />
           </button>
@@ -142,6 +152,25 @@ export const MobileNav = ({ isAdmin }) => {
           </NavLink>
         ))}
       </nav>
+
+      {modalExportarAberto && (
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-2xl w-full flex flex-col max-h-[92vh] shadow-xl">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-[#DADADA] shrink-0">
+              <h2 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2">
+                <Download size={18} className="text-[#800000]" />
+                Exportar
+              </h2>
+              <button onClick={() => setModalExportarAberto(false)} className="text-[#666666] hover:text-[#1A1A1A]">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-5 py-5">
+              <ExportarSection />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de configurações completo */}
       {modalAberto && (
