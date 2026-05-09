@@ -12,6 +12,11 @@ const TURNOS_BASE = [
 const inputCls = 'w-full border border-[#DADADA] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000] text-[#1A1A1A] bg-white transition-shadow';
 const labelCls = 'block text-sm font-semibold text-[#1A1A1A] mb-1.5';
 
+const getDataBloqueio = (dia) => {
+  const data = dia?.data || dia?.date;
+  return typeof data === 'string' ? data.slice(0, 10) : '';
+};
+
 const HorarioPicker = ({ inicio, fim, onConfirm, onClose, horariosAtivos }) => {
   const TURNOS_HORARIOS = TURNOS_BASE.map(t => ({
     ...t, slots: t.slots.filter(s => !horariosAtivos || horariosAtivos.includes(s)),
@@ -151,7 +156,7 @@ export const Agendamento = () => {
       setErro('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
-    if (diasBloqueados.some(d => d.data === form.data)) {
+    if (diasBloqueados.some(d => getDataBloqueio(d) === form.data)) {
       setErro('Este dia está bloqueado para agendamentos. Escolha outra data.');
       return;
     }
