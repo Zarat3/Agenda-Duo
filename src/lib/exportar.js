@@ -1,5 +1,4 @@
 import { format, parseISO, addDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import html2canvas from 'html2canvas';
 
 const BOM = '﻿';
@@ -11,6 +10,26 @@ const esc = (v) => {
   return `"${s.replace(/"/g, '""')}"`;
 };
 const csvRow = (arr) => arr.map(esc).join(',');
+
+const HTML_ESCAPE = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+const htmlEsc = (v) => String(v ?? '').replace(/[&<>"']/g, ch => HTML_ESCAPE[ch]);
+
+function fileSafe(v, fallback = 'arquivo') {
+  const safe = String(v ?? '')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 80);
+  return safe || fallback;
+}
 
 function fmtData(ds) {
   try { return format(parseISO(ds), 'dd/MM/yyyy'); } catch { return ds || ''; }
@@ -34,7 +53,7 @@ function openPrint(html, title) {
   const win = window.open('', '_blank');
   if (!win) return;
   win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
-    <meta charset="UTF-8"><title>${title}</title>
+    <meta charset="UTF-8"><title>${htmlEsc(title)}</title>
     <style>
       body{font-family:Arial,sans-serif;font-size:12px;color:#1a1a1a;margin:0;padding:24px}
       h1{font-size:18px;color:#800000;margin:0 0 4px}
@@ -61,7 +80,16 @@ async function captureHTML(html, filename) {
   document.body.appendChild(div);
   try {
     const canvas = await html2canvas(div, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-    canvas.toBlob(blob => { if (blob) downloadBlob(blob, filename); }, 'image/png');
+    await new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        if (!blob) {
+          reject(new Error('Falha ao gerar imagem.'));
+          return;
+        }
+        downloadBlob(blob, filename);
+        resolve();
+      }, 'image/png');
+    });
   } finally {
     document.body.removeChild(div);
   }
@@ -79,7 +107,7 @@ function inlineStyles(html) {
 function badge(status) {
   const bg = STATUS_BG[status] || '#f0f0f0';
   const cor = STATUS_COR[status] || '#555';
-  return `<span style="background:${bg};color:${cor};padding:2px 8px;border-radius:10px;font-weight:bold;font-size:10px">${status}</span>`;
+  return `<span style="background:${bg};color:${cor};padding:2px 8px;border-radius:10px;font-weight:bold;font-size:10px">${htmlEsc(status)}</span>`;
 }
 
 // ─── AGENDA ──────────────────────────────────────────────
@@ -105,10 +133,10 @@ function getAgendaRows({ consultas, pacientes, nomes, weekStart }) {
 function agendaHTML(rows, weekStart, cfg) {
   const semana = `${format(addDays(weekStart, 0), 'dd/MM')} – ${format(addDays(weekStart, 5), 'dd/MM/yyyy')}`;
   const tableRows = rows.map(r =>
-    `<tr><td>${r.data}</td><td>${r.horario}</td><td>${r.paciente}</td><td>${r.telefone}</td><td>${r.responsavel}</td><td><span class="${r.status}">${r.status}</span></td></tr>`
+    `<tr><td>${htmlEsc(r.data)}</td><td>${htmlEsc(r.horario)}</td><td>${htmlEsc(r.paciente)}</td><td>${htmlEsc(r.telefone)}</td><td>${htmlEsc(r.responsavel)}</td><td>${badge(r.status)}</td></tr>`
   ).join('');
-  return `<h1>${cfg?.nomeClinica || 'Agenda Duo'}</h1>
-    <p style="color:#666;margin:0 0 16px;font-size:11px">Semana de ${semana}${cfg?.turma ? ' · ' + cfg.turma : ''}</p>
+  return `<h1>${htmlEsc(cfg?.nomeClinica || 'Agenda Duo')}</h1>
+    <p style="color:#666;margin:0 0 16px;font-size:11px">Semana de ${htmlEsc(semana)}${cfg?.turma ? ' · ' + htmlEsc(cfg.turma) : ''}</p>
     <h2>Consultas</h2>
     <table>
       <tr><th>Data</th><th>Horário</th><th>Paciente</th><th>Telefone</th><th>Responsável</th><th>Status</th></tr>
@@ -141,10 +169,10 @@ export async function exportAgendaPNG({ consultas, pacientes, nomes, weekStart, 
   if (!rows.length) return false;
   const semana = `${format(addDays(weekStart, 0), 'dd/MM')} – ${format(addDays(weekStart, 5), 'dd/MM/yyyy')}`;
   const tableRows = rows.map(r =>
-    `<tr style="border-bottom:1px solid #eee"><td style="padding:6px 8px">${r.data}</td><td style="padding:6px 8px">${r.horario}</td><td style="padding:6px 8px;font-weight:bold">${r.paciente}</td><td style="padding:6px 8px">${r.telefone}</td><td style="padding:6px 8px">${r.responsavel}</td><td style="padding:6px 8px">${badge(r.status)}</td></tr>`
+    `<tr style="border-bottom:1px solid #eee"><td style="padding:6px 8px">${htmlEsc(r.data)}</td><td style="padding:6px 8px">${htmlEsc(r.horario)}</td><td style="padding:6px 8px;font-weight:bold">${htmlEsc(r.paciente)}</td><td style="padding:6px 8px">${htmlEsc(r.telefone)}</td><td style="padding:6px 8px">${htmlEsc(r.responsavel)}</td><td style="padding:6px 8px">${badge(r.status)}</td></tr>`
   ).join('');
-  const html = `<h1 style="font-size:18px;color:#800000;margin:0 0 4px">${configuracoes?.nomeClinica || 'Agenda Duo'}</h1>
-    <p style="color:#888;font-size:11px;margin:0 0 16px">Semana de ${semana}${configuracoes?.turma ? ' · ' + configuracoes.turma : ''}</p>
+  const html = `<h1 style="font-size:18px;color:#800000;margin:0 0 4px">${htmlEsc(configuracoes?.nomeClinica || 'Agenda Duo')}</h1>
+    <p style="color:#888;font-size:11px;margin:0 0 16px">Semana de ${htmlEsc(semana)}${configuracoes?.turma ? ' · ' + htmlEsc(configuracoes.turma) : ''}</p>
     <table style="width:100%;border-collapse:collapse">
       <tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:left;font-size:11px">Data</th><th style="padding:6px 8px;text-align:left;font-size:11px">Horário</th><th style="padding:6px 8px;text-align:left;font-size:11px">Paciente</th><th style="padding:6px 8px;text-align:left;font-size:11px">Telefone</th><th style="padding:6px 8px;text-align:left;font-size:11px">Responsável</th><th style="padding:6px 8px;text-align:left;font-size:11px">Status</th></tr>
       ${tableRows}
@@ -157,26 +185,26 @@ export async function exportAgendaPNG({ consultas, pacientes, nomes, weekStart, 
 
 function buildFichaHTML(consulta, paciente, nomes, cfg) {
   const resp = consulta.dupla === 'Estudante A' ? nomes.estudanteA : nomes.estudanteB;
-  return `<h1>${cfg?.nomeClinica || 'Agenda Duo'}</h1>
-    <p style="color:#666;margin:0 0 16px;font-size:11px">${cfg?.turma || ''}</p>
+  return `<h1>${htmlEsc(cfg?.nomeClinica || 'Agenda Duo')}</h1>
+    <p style="color:#666;margin:0 0 16px;font-size:11px">${htmlEsc(cfg?.turma || '')}</p>
     <h2>Dados do Paciente</h2>
     <table>
-      <tr><th>Nome</th><td>${paciente.nome}</td><th>Idade</th><td>${paciente.idade || '—'}</td></tr>
-      <tr><th>Telefone</th><td>${paciente.telefone || '—'}</td><th>Responsável</th><td>${resp}</td></tr>
-      ${paciente.alertas ? `<tr><th>Alertas</th><td colspan="3" style="color:#c00;font-weight:bold">${paciente.alertas}</td></tr>` : ''}
+      <tr><th>Nome</th><td>${htmlEsc(paciente.nome)}</td><th>Idade</th><td>${htmlEsc(paciente.idade || '—')}</td></tr>
+      <tr><th>Telefone</th><td>${htmlEsc(paciente.telefone || '—')}</td><th>Responsável</th><td>${htmlEsc(resp)}</td></tr>
+      ${paciente.alertas ? `<tr><th>Alertas</th><td colspan="3" style="color:#c00;font-weight:bold">${htmlEsc(paciente.alertas)}</td></tr>` : ''}
     </table>
     <h2>Consulta</h2>
     <table>
-      <tr><th>Data</th><td>${fmtData(consulta.data)}</td><th>Horário</th><td>${consulta.horario_fim ? consulta.horario + ' – ' + consulta.horario_fim : consulta.horario}</td></tr>
-      <tr><th>Status</th><td><span class="${consulta.status}">${consulta.status}</span></td><th>Dente</th><td>${consulta.dente || '—'}</td></tr>
-      <tr><th>Procedimento</th><td colspan="3">${consulta.procedimento || '—'}</td></tr>
-      ${consulta.proxima_sessao ? `<tr><th>Próxima Sessão</th><td colspan="3">${consulta.proxima_sessao}</td></tr>` : ''}
+      <tr><th>Data</th><td>${htmlEsc(fmtData(consulta.data))}</td><th>Horário</th><td>${htmlEsc(consulta.horario_fim ? consulta.horario + ' – ' + consulta.horario_fim : consulta.horario)}</td></tr>
+      <tr><th>Status</th><td>${badge(consulta.status)}</td><th>Dente</th><td>${htmlEsc(consulta.dente || '—')}</td></tr>
+      <tr><th>Procedimento</th><td colspan="3">${htmlEsc(consulta.procedimento || '—')}</td></tr>
+      ${consulta.proxima_sessao ? `<tr><th>Próxima Sessão</th><td colspan="3">${htmlEsc(consulta.proxima_sessao)}</td></tr>` : ''}
     </table>
-    ${consulta.descricao ? `<h2>Observações / Evolução</h2><p style="padding:8px;background:#f9f9f9;border-radius:4px;white-space:pre-wrap">${consulta.descricao}</p>` : ''}`;
+    ${consulta.descricao ? `<h2>Observações / Evolução</h2><p style="padding:8px;background:#f9f9f9;border-radius:4px;white-space:pre-wrap">${htmlEsc(consulta.descricao)}</p>` : ''}`;
 }
 
 function fichaFilename(paciente, consulta) {
-  return `ficha-${paciente.nome.replace(/\s+/g, '-')}-${fmtData(consulta.data).replace(/\//g, '-')}`;
+  return `ficha-${fileSafe(paciente.nome, 'paciente')}-${fmtData(consulta.data).replace(/\//g, '-')}`;
 }
 
 export function exportFichaCSV(consulta, paciente, nomes) {
@@ -225,7 +253,7 @@ function buildProntuarioHTML(paciente, consultasPac, planoPac, nomes, cfg) {
         <tr><th>Data</th><th>Horário</th><th>Responsável</th><th>Status</th><th>Dente</th><th>Procedimento</th><th>Observações</th></tr>
         ${ordenadas.map(c => {
           const resp = c.dupla === 'Estudante A' ? nomes.estudanteA : nomes.estudanteB;
-          return `<tr><td>${fmtData(c.data)}</td><td>${c.horario_fim ? c.horario + '–' + c.horario_fim : c.horario}</td><td>${resp}</td><td><span class="${c.status}">${c.status}</span></td><td>${c.dente || '—'}</td><td>${c.procedimento || '—'}</td><td>${c.descricao || '—'}</td></tr>`;
+          return `<tr><td>${htmlEsc(fmtData(c.data))}</td><td>${htmlEsc(c.horario_fim ? c.horario + ' – ' + c.horario_fim : c.horario)}</td><td>${htmlEsc(resp)}</td><td>${badge(c.status)}</td><td>${htmlEsc(c.dente || '—')}</td><td>${htmlEsc(c.procedimento || '—')}</td><td>${htmlEsc(c.descricao || '—')}</td></tr>`;
         }).join('')}
       </table>`
     : '<p style="color:#888">Nenhuma consulta registrada.</p>';
@@ -233,24 +261,24 @@ function buildProntuarioHTML(paciente, consultasPac, planoPac, nomes, cfg) {
   const planoHTML = planoPac.length
     ? `<table>
         <tr><th>Dente</th><th>Procedimento</th><th>Observações</th><th>Status</th></tr>
-        ${planoPac.map(p => `<tr><td>${p.dente || '—'}</td><td>${p.procedimento}</td><td>${p.observacoes || '—'}</td><td><span class="${p.status}">${p.status}</span></td></tr>`).join('')}
+        ${planoPac.map(p => `<tr><td>${htmlEsc(p.dente || '—')}</td><td>${htmlEsc(p.procedimento)}</td><td>${htmlEsc(p.observacoes || '—')}</td><td>${badge(p.status)}</td></tr>`).join('')}
       </table>`
     : '<p style="color:#888">Nenhum item no plano.</p>';
 
   const anamnese = (paciente.queixa_principal || paciente.historico_medico || paciente.medicamentos)
     ? `<h2>Anamnese</h2><table>
-        ${paciente.queixa_principal ? `<tr><th>Queixa Principal</th><td>${paciente.queixa_principal}</td></tr>` : ''}
-        ${paciente.historico_medico ? `<tr><th>Histórico Médico</th><td>${paciente.historico_medico}</td></tr>` : ''}
-        ${paciente.medicamentos ? `<tr><th>Medicamentos</th><td>${paciente.medicamentos}</td></tr>` : ''}
+        ${paciente.queixa_principal ? `<tr><th>Queixa Principal</th><td>${htmlEsc(paciente.queixa_principal)}</td></tr>` : ''}
+        ${paciente.historico_medico ? `<tr><th>Histórico Médico</th><td>${htmlEsc(paciente.historico_medico)}</td></tr>` : ''}
+        ${paciente.medicamentos ? `<tr><th>Medicamentos</th><td>${htmlEsc(paciente.medicamentos)}</td></tr>` : ''}
       </table>` : '';
 
-  return `<h1>${cfg?.nomeClinica || 'Agenda Duo'}</h1>
-    <p style="color:#666;margin:0 0 16px;font-size:11px">Prontuário do Paciente${cfg?.turma ? ' · ' + cfg.turma : ''}</p>
+  return `<h1>${htmlEsc(cfg?.nomeClinica || 'Agenda Duo')}</h1>
+    <p style="color:#666;margin:0 0 16px;font-size:11px">Prontuário do Paciente${cfg?.turma ? ' · ' + htmlEsc(cfg.turma) : ''}</p>
     <h2>Dados do Paciente</h2>
     <table>
-      <tr><th>Nome</th><td>${paciente.nome}</td><th>Idade</th><td>${paciente.idade || '—'}</td></tr>
-      <tr><th>Telefone</th><td>${paciente.telefone || '—'}</td><td colspan="2"></td></tr>
-      ${paciente.alertas ? `<tr><th>Alertas</th><td colspan="3" style="color:#c00;font-weight:bold">${paciente.alertas}</td></tr>` : ''}
+      <tr><th>Nome</th><td>${htmlEsc(paciente.nome)}</td><th>Idade</th><td>${htmlEsc(paciente.idade || '—')}</td></tr>
+      <tr><th>Telefone</th><td>${htmlEsc(paciente.telefone || '—')}</td><td colspan="2"></td></tr>
+      ${paciente.alertas ? `<tr><th>Alertas</th><td colspan="3" style="color:#c00;font-weight:bold">${htmlEsc(paciente.alertas)}</td></tr>` : ''}
     </table>
     ${anamnese}
     <h2>Plano de Tratamento</h2>${planoHTML}
@@ -281,7 +309,7 @@ export function exportProntuarioCSV(paciente, consultasPac, planoPac, nomes) {
   ];
   downloadBlob(
     new Blob([BOM + linhas.join('\n')], { type: 'text/csv;charset=utf-8;' }),
-    `prontuario-${paciente.nome.replace(/\s+/g, '-')}.csv`
+    `prontuario-${fileSafe(paciente.nome, 'paciente')}.csv`
   );
 }
 
@@ -294,5 +322,5 @@ export async function exportProntuarioPNG(paciente, consultasPac, planoPac, nome
     .replace(/class="(Confirmado|Pendente|Cancelado|Realizado)"/g, (_, s) =>
       `style="background:${STATUS_BG[s]};color:${STATUS_COR[s]};padding:2px 8px;border-radius:10px;font-weight:bold;font-size:10px"`
     );
-  await captureHTML(html, `prontuario-${paciente.nome.replace(/\s+/g, '-')}.png`);
+  await captureHTML(html, `prontuario-${fileSafe(paciente.nome, 'paciente')}.png`);
 }
