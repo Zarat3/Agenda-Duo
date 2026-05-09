@@ -35,6 +35,11 @@ const STATUS_BADGE = {
 const DOT  = { 'Estudante A': 'bg-blue-500', 'Estudante B': 'bg-purple-500' };
 const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+const getDataBloqueio = (dia) => {
+  const data = dia?.data || dia?.date;
+  return typeof data === 'string' ? data.slice(0, 10) : '';
+};
+
 /* ─── Popup ────────────────────────────────────────────── */
 const TURNOS_EDIT = [
   { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
@@ -240,14 +245,15 @@ export const Dashboard = () => {
     ...t, slots: t.slots.filter(s => configuracoes.horariosAtivos.includes(s)),
   })).filter(t => t.slots.length > 0);
 
-  const isDiaBloqueado  = (ds) => diasBloqueados.some(d => d.data === ds);
+  const getDiaBloqueado = (ds) => diasBloqueados.find(d => getDataBloqueio(d) === ds);
+  const isDiaBloqueado  = (ds) => Boolean(getDiaBloqueado(ds));
   const isFeriado       = (ds) => feriadosNacionais.some(f => f.date === ds);
   const isDiaInativo    = (ds) => { try { const d = parseISO(ds); return !configuracoes.diasAtivos.includes(d.getDay() === 0 ? 7 : d.getDay()); } catch { return false; } };
   const isDiaIndisponivel = (ds) => isDiaBloqueado(ds) || isFeriado(ds) || isDiaInativo(ds);
   const infoDia = (ds) => {
     const f = feriadosNacionais.find(f => f.date === ds);
     if (f) return { tipo: 'nacional', motivo: f.name };
-    const b = diasBloqueados.find(d => d.data === ds);
+    const b = getDiaBloqueado(ds);
     if (b) return { tipo: 'custom', motivo: b.motivo };
     return null;
   };
@@ -375,7 +381,7 @@ export const Dashboard = () => {
     if (!modalDia) return null;
     const { dateStr, label } = modalDia;
     const feriado    = feriadosNacionais.find(f => f.date === dateStr);
-    const bloqueado  = diasBloqueados.find(d => d.data === dateStr);
+    const bloqueado  = getDiaBloqueado(dateStr);
 
     const handleBloquear = async () => {
       setSalvando(true);
@@ -420,6 +426,12 @@ export const Dashboard = () => {
                 <LockOpen size={15} />
                 {salvando ? 'Desbloqueando...' : 'Desbloquear dia'}
               </button>
+            </div>
+          ) : isDiaInativo(dateStr) ? (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+              <Lock size={20} className="text-gray-400 mx-auto mb-2" />
+              <p className="text-sm font-bold text-gray-600">Dia fora do horário de atendimento</p>
+              <p className="text-xs text-gray-400 mt-1">Este dia da semana não está ativo nas configurações.</p>
             </div>
           ) : (
             <div>
@@ -739,7 +751,7 @@ export const Dashboard = () => {
           onStatusChange={handleStatusChange}
           onDelete={() => { deleteConsulta(popup.consulta.id).catch(console.error); setPopup(null); }}
           onSaveEdit={async (editForm) => {
-            if (diasBloqueados.some(d => d.data === editForm.data))
+            if (diasBloqueados.some(d => getDataBloqueio(d) === editForm.data))
               throw new Error('Este dia está bloqueado para agendamentos.');
             if (feriadosNacionais.some(f => f.date === editForm.data))
               throw new Error('Esta data é um feriado nacional.');
