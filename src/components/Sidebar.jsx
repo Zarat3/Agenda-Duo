@@ -209,9 +209,6 @@ export const Sidebar = ({ isAdmin }) => {
             {/* Corpo rolável */}
             <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
 
-              {/* Exportar */}
-              <ExportarSection />
-
               {/* Nomes da dupla */}
               <div>
                 <p className={sectionTitle}>
