@@ -65,7 +65,9 @@ export default async function handler(req, res) {
   } catch (err) {
     // Rollback: desfaz o que foi criado na ordem inversa
     if (userAId) await supabase.auth.admin.deleteUser(userAId).catch(() => {});
-    if (duplaId) await supabase.from('duplas').delete().eq('id', duplaId).catch(() => {});
+    if (duplaId) {
+      try { await supabase.from('duplas').delete().eq('id', duplaId); } catch {}
+    }
     return res.status(500).json({ error: err.message });
   }
 }
