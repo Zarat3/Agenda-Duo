@@ -13,6 +13,7 @@ import { Admin } from './pages/Admin';
 import { Prontuario } from './pages/Prontuario';
 import { NovoPaciente } from './pages/NovoPaciente';
 import { Confirmar } from './pages/Confirmar';
+import { Perfil } from './pages/Perfil';
 import { Cadastro } from './pages/Cadastro';
 import { RedefinirSenha } from './pages/RedefinirSenha';
 
@@ -47,6 +48,7 @@ function AppContent() {
             <Route path="/pacientes/novo" element={<NovoPaciente />} />
             <Route path="/pacientes/:id" element={<Prontuario />} />
             <Route path="/agendamento" element={<Agendamento />} />
+            <Route path="/perfil" element={<Perfil />} />
             {isAdmin && <Route path="/admin" element={<Admin />} />}
           </Routes>
         </main>

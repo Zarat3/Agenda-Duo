@@ -93,9 +93,14 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
             <p className="text-sm font-semibold text-gray-800 capitalize">
               {dataFmt} · {c.horario_fim ? `${c.horario} – ${c.horario_fim}` : c.horario}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={`w-2 h-2 rounded-full ${dotColor}`} />
               <p className="text-sm text-gray-600">{nomeDupla}</p>
+              {c.clinica && (
+                <span className="text-xs font-semibold bg-[#800000]/10 text-[#800000] px-2 py-0.5 rounded-full">
+                  {c.clinica}
+                </span>
+              )}
             </div>
             {c.queixa_principal && (
               <p className="text-sm text-gray-700 border-t border-gray-200 pt-1.5 mt-1.5">

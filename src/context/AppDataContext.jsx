@@ -15,7 +15,9 @@ export const AppDataProvider = ({ children, duoId }) => {
     turma: '',
     horariosAtivos: ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','16:20','17:20','18:20'],
     diasAtivos: [1,2,3,4,5,6],
+    clinicasAtivas: [],
   });
+  const [perfis, setPerfis] = useState([]);
   const [diasBloqueados, setDiasBloqueados] = useState([]);
   const [feriadosNacionais, setFeriadosNacionais] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,12 +30,14 @@ export const AppDataProvider = ({ children, duoId }) => {
         { data: planos, error: errPlanos },
         { data: config },
         { data: bloqueados },
+        { data: perfisDuo },
       ] = await Promise.all([
         supabase.from('pacientes').select('*').eq('duo_id', duoId).order('nome'),
         supabase.from('consultas').select('*').eq('duo_id', duoId).order('data').order('horario'),
         supabase.from('plano_tratamento').select('*').eq('duo_id', duoId).order('created_at'),
         supabase.from('configuracoes').select('*').eq('duo_id', duoId).single(),
         supabase.from('dias_bloqueados').select('*').eq('duo_id', duoId),
+        supabase.from('perfis').select('*').eq('duo_id', duoId),
       ]);
 
       if (errPacs) console.error('Erro ao carregar pacientes:', errPacs.message);
@@ -50,9 +54,11 @@ export const AppDataProvider = ({ children, duoId }) => {
           turma: config.turma || '',
           horariosAtivos: config.horarios_ativos || ALL_SLOTS,
           diasAtivos: config.dias_ativos || [1,2,3,4,5,6],
+          clinicasAtivas: config.clinicas_ativas || [],
         });
       }
       if (bloqueados) setDiasBloqueados(bloqueados);
+      if (perfisDuo) setPerfis(perfisDuo);
       setLoading(false);
     };
 
@@ -154,6 +160,7 @@ export const AppDataProvider = ({ children, duoId }) => {
         dupla: consulta.dupla,
         status: consulta.status,
         descricao: consulta.descricao || null,
+        clinica: consulta.clinica || null,
         duo_id: duoId,
       }])
       .select()
@@ -215,7 +222,7 @@ export const AppDataProvider = ({ children, duoId }) => {
     setConsultas(prev => prev.map(c => c.id === id ? { ...c, dente, procedimento, proxima_sessao } : c));
   };
 
-  const updateConfiguracoes = async ({ estudanteA, estudanteB, nomeClinica, turma, horariosAtivos, diasAtivos }) => {
+  const updateConfiguracoes = async ({ estudanteA, estudanteB, nomeClinica, turma, horariosAtivos, diasAtivos, clinicasAtivas }) => {
     const { error } = await supabase
       .from('configuracoes')
       .upsert(
@@ -227,12 +234,24 @@ export const AppDataProvider = ({ children, duoId }) => {
           turma: turma || null,
           horarios_ativos: horariosAtivos,
           dias_ativos: diasAtivos,
+          clinicas_ativas: clinicasAtivas || [],
         },
         { onConflict: 'duo_id' }
       );
     if (error) throw new Error(error.message);
     setNomes({ estudanteA, estudanteB });
-    setConfiguracoes({ nomeClinica, turma, horariosAtivos, diasAtivos });
+    setConfiguracoes({ nomeClinica, turma, horariosAtivos, diasAtivos, clinicasAtivas: clinicasAtivas || [] });
+  };
+
+  const upsertPerfil = async (perfilData) => {
+    const { data, error } = await supabase
+      .from('perfis')
+      .upsert({ ...perfilData, duo_id: duoId }, { onConflict: 'user_id' })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    setPerfis(prev => [...prev.filter(p => p.user_id !== perfilData.user_id), data]);
+    return data;
   };
 
   const updateNomes = async (estudanteA, estudanteB) => {
@@ -299,10 +318,10 @@ export const AppDataProvider = ({ children, duoId }) => {
 
   return (
     <AppDataContext.Provider value={{
-      pacientes, consultas, plano, nomes, configuracoes, diasBloqueados, feriadosNacionais, loading,
+      pacientes, consultas, plano, nomes, configuracoes, perfis, diasBloqueados, feriadosNacionais, loading,
       addPaciente, deletePaciente, updatePaciente, updatePacienteAlertas, updateAnamnese,
       addConsulta, updateConsulta, updateConsultaStatus, updateConsultaDescricao, updateConsultaFicha, deleteConsulta,
-      updateNomes, updateConfiguracoes,
+      updateNomes, updateConfiguracoes, upsertPerfil,
       addPlanoItem, updatePlanoStatus, deletePlanoItem,
       bloquearDia, desbloquearDia,
     }}>

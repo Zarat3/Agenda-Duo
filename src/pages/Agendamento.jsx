@@ -136,6 +136,7 @@ export const Agendamento = () => {
     horario_fim: '',
     dupla: 'Estudante A',
     status: 'Pendente',
+    clinica: '',
     descricao: '',
   });
 
@@ -253,6 +254,22 @@ export const Agendamento = () => {
               </button>
             </div>
           </div>
+
+          {configuracoes.clinicasAtivas?.length > 0 && (
+            <div>
+              <label className={labelCls}>Clínica</label>
+              <select
+                value={form.clinica}
+                onChange={e => setForm({ ...form, clinica: e.target.value })}
+                className={inputCls}
+              >
+                <option value="">Selecione (opcional)</option>
+                {configuracoes.clinicasAtivas.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

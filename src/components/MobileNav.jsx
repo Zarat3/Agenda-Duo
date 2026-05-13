@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Calendar, Users, PlusCircle, Settings, LogOut, ShieldCheck, X, Bell, BellOff, Smartphone, Building2, Clock, Download, UserCog, KeyRound, Mail, CheckCircle, AlertCircle } from 'lucide-react';
+import { Home, Calendar, Users, PlusCircle, Settings, LogOut, ShieldCheck, X, Bell, BellOff, Smartphone, Building2, Clock, Download, UserCog, KeyRound, Mail, CheckCircle, AlertCircle, UserCircle, Stethoscope } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
@@ -86,6 +86,12 @@ export const MobileNav = ({ isAdmin }) => {
     }
   };
 
+  const TODAS_CLINICAS = [
+    'Clínica Integrada', 'Periodontia', 'Dentística', 'Endodontia',
+    'Pediatria', 'Prótese Total', 'Prótese Parcial Removível',
+    'Cirurgia', 'Ortodontia', 'Saúde Coletiva', 'Urgência', 'Radiologia',
+  ];
+
   const abrirModal = () => {
     setForm({
       estudanteA: nomes.estudanteA,
@@ -94,9 +100,19 @@ export const MobileNav = ({ isAdmin }) => {
       turma: configuracoes.turma,
       horariosAtivos: [...configuracoes.horariosAtivos],
       diasAtivos: [...configuracoes.diasAtivos],
+      clinicasAtivas: [...(configuracoes.clinicasAtivas || [])],
     });
     setErro('');
     setModalAberto(true);
+  };
+
+  const toggleClinica = (c) => {
+    setForm(f => ({
+      ...f,
+      clinicasAtivas: f.clinicasAtivas.includes(c)
+        ? f.clinicasAtivas.filter(x => x !== c)
+        : [...f.clinicasAtivas, c],
+    }));
   };
 
   const toggleHorario = (slot) => {
@@ -144,6 +160,7 @@ export const MobileNav = ({ isAdmin }) => {
         turma: form.turma?.trim() || '',
         horariosAtivos: form.horariosAtivos,
         diasAtivos: form.diasAtivos,
+        clinicasAtivas: form.clinicasAtivas || [],
       });
       setModalAberto(false);
     } catch (err) {
@@ -158,6 +175,7 @@ export const MobileNav = ({ isAdmin }) => {
     { to: '/agenda', icon: Calendar, label: 'Agenda' },
     { to: '/pacientes', icon: Users, label: 'Pacientes' },
     { to: '/agendamento', icon: PlusCircle, label: 'Agendar' },
+    { to: '/perfil', icon: UserCircle, label: 'Perfil' },
     ...(isAdmin ? [{ to: '/admin', icon: ShieldCheck, label: 'Admin' }] : []),
   ];
 
@@ -407,6 +425,25 @@ export const MobileNav = ({ isAdmin }) => {
                           ativo ? 'bg-[#800000] border-[#800000] text-white' : 'bg-white border-[#DADADA] text-[#999999]'
                         }`}>
                         {dia.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Clínicas */}
+              <div>
+                <p className={sectionTitle}><Stethoscope size={13} /> Clínicas</p>
+                <p className="text-xs text-[#666666] mb-2">Selecione as clínicas em que sua dupla atua.</p>
+                <div className="flex flex-wrap gap-2">
+                  {TODAS_CLINICAS.map(c => {
+                    const ativo = form.clinicasAtivas?.includes(c);
+                    return (
+                      <button key={c} type="button" onClick={() => toggleClinica(c)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                          ativo ? 'bg-[#800000] border-[#800000] text-white' : 'bg-white border-[#DADADA] text-[#999999]'
+                        }`}>
+                        {c}
                       </button>
                     );
                   })}
