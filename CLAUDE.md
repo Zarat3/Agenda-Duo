@@ -5,7 +5,7 @@
 Agenda Duo é um sistema de gestão de agenda odontológica para **duplas de estudantes** em clínica universitária. Cada dupla (dois estudantes) compartilha uma conta para agendar pacientes, registrar consultas, manter prontuários e exportar relatórios.
 
 - **Público:** estudantes de odontologia em disciplinas clínicas
-- **Admin:** `eliasafdiasmello@gmail.com` — único usuário que pode criar novas duplas
+- **Admin:** `eliasafdiasmello@gmail.com` — gerencia duplas, aprova cadastros
 - **Status:** produção ativa no Vercel (branch `main` → deploy automático)
 
 ---
@@ -17,7 +17,7 @@ Agenda Duo é um sistema de gestão de agenda odontológica para **duplas de est
 | Frontend | React 19 + Vite 6 |
 | Estilo | Tailwind CSS v4 (CSS-first, sem `tailwind.config.js`) |
 | Roteamento | react-router-dom v7 |
-| Banco/Auth | Supabase (PostgreSQL + RLS + Realtime + Auth) |
+| Banco/Auth/Storage | Supabase (PostgreSQL + RLS + Realtime + Auth + Storage) |
 | Deploy | Vercel (funções serverless em `/api/`) |
 | Ícones | lucide-react |
 | Datas | date-fns v4 + ptBR locale |
@@ -32,37 +32,43 @@ Tailwind v4 usa `@theme` em `src/index.css` — não tem `tailwind.config.js`. C
 
 ```
 /api/                        Vercel serverless functions (ESM, "type":"module")
-  criar-dupla.js             Cria dupla + 2 usuários via Supabase admin API
+  criar-dupla.js             Admin cria dupla + 2 usuários direto (status: ativo)
+  solicitar-cadastro.js      Público — cria dupla + usuários com status: pendente
+  aprovar-dupla.js           Admin aprova dupla pendente; ativa usuários + cria configuracoes
+  editar-dupla.js            Admin edita nome/emails/senhas de uma dupla existente
   send-push.js               Dispara push notification ao confirmar consulta
 
 /src/
-  App.jsx                    Roteamento + 3 camadas de proteção de auth
+  App.jsx                    Roteamento + camadas de proteção de auth
   main.jsx                   Entry point; registra Service Worker
 
   context/
-    AuthContext.jsx           Session Supabase; expõe session, signIn, signOut
+    AuthContext.jsx           Session Supabase; expõe session, signIn, signOut, recoveryMode
     AppDataContext.jsx        Todo o estado da dupla + todas as mutations
 
   pages/
-    Login.jsx                Tela de login (sem cadastro público)
+    Login.jsx                Login + "Esqueci senha" + link para /cadastro
+    Cadastro.jsx             Cadastro público — dupla solicita acesso (aguarda aprovação)
+    RedefinirSenha.jsx       Redefine senha via link de e-mail (evento PASSWORD_RECOVERY)
     Home.jsx                 Dashboard: consultas hoje/pendentes/semana + atalhos
-    Dashboard.jsx            Agenda semanal (desktop) / diária (mobile) + popup edição + ModalBloqueio
+    Dashboard.jsx            Agenda semanal (desktop) / diária (mobile) + popup edição
     Pacientes.jsx            Lista com busca por nome ou telefone
     NovoPaciente.jsx         Cadastro: nome, telefone, idade, alertas
-    Prontuario.jsx           Ficha: perfil, alertas, anamnese, plano, histórico de consultas
-    Agendamento.jsx          Novo agendamento + HorarioPicker modal
+    Prontuario.jsx           Ficha: alertas, anamnese, plano, histórico de consultas
+    Agendamento.jsx          Novo agendamento + HorarioPicker modal + seletor de clínica
     Confirmar.jsx            Página pública /confirmar/:token (sem auth)
-    Admin.jsx                Criar/excluir duplas (só VITE_ADMIN_EMAIL)
+    Perfil.jsx               Perfis dos dois estudantes (CPF, RG, período, foto)
+    Admin.jsx                Aprovação de pendentes + criar/editar/excluir duplas
 
   components/
-    Sidebar.jsx              Nav desktop + modais Exportar e Configurações
-    MobileNav.jsx            Header sticky + bottom nav + mesmos dois modais
+    Sidebar.jsx              Nav desktop + modais Exportar, Configurações, Minha Conta
+    MobileNav.jsx            Header sticky + bottom nav + mesmos três modais
     ExportarSection.jsx      Seletor tipo (Agenda/Ficha/Prontuário) + formato (CSV/PDF/PNG)
     StatusBadge.jsx          Badge de status reutilizável
 
   lib/
     supabase.js              createClient (VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY)
-    supabaseNoSession.js     Cliente sem persistir sessão — NÃO usado atualmente (resíduo)
+    supabaseNoSession.js     Resíduo — não usado; pode deletar
     exportar.js              Funções CSV, PDF e PNG + helpers de sanitização
 
   hooks/
@@ -78,18 +84,20 @@ Tailwind v4 usa `@theme` em `src/index.css` — não tem `tailwind.config.js`. C
 
 ## Arquitetura de roteamento (App.jsx)
 
-3 camadas concêntricas:
+Camadas concêntricas:
 
-1. **`/confirmar/:token`** — rota pública, fora de qualquer proteção
-2. **`AppInner`** — verifica `session` + `duo_id`:
+1. **`/confirmar/:token`** e **`/cadastro`** — rotas públicas, fora de qualquer proteção
+2. **`AppInner`** — verifica `session` + estado do usuário:
    - sem session → `<Login />`
-   - session sem `user_metadata.duo_id` → tela de erro "Conta sem dupla configurada"
+   - `recoveryMode === true` → `<RedefinirSenha />`
+   - session sem `user_metadata.duo_id` → tela "Conta sem dupla configurada"
+   - `user_metadata.status === 'pendente'` → tela "Aguardando aprovação"
    - ok → renderiza `AppContent`
 3. **`AppContent`** — wraps `AppDataProvider` com `duoId`; renderiza rotas protegidas
    - Admin detectado por `session.user.email === VITE_ADMIN_EMAIL`
-   - Rota `/admin` só renderiza se `isAdmin`; senão redireciona para `/`
+   - Rota `/admin` só renderiza se `isAdmin`
 
-Rotas protegidas: `/` (Home), `/agenda` (Dashboard), `/pacientes`, `/pacientes/novo`, `/pacientes/:id` (Prontuário), `/agendamento`, `/admin`
+Rotas protegidas: `/` (Home), `/agenda` (Dashboard), `/pacientes`, `/pacientes/novo`, `/pacientes/:id` (Prontuário), `/agendamento`, `/perfil`, `/admin`
 
 ---
 
@@ -105,13 +113,16 @@ Cada dupla tem `duo_id` (UUID). Salvo em `user_metadata.duo_id` de cada usuário
 
 | Tabela | Colunas chave |
 |---|---|
-| `duplas` | `id`, `nome` |
+| `duplas` | `id`, `nome`, `status` (ativo\|pendente), `user_a_id`, `user_b_id`, `nome_a`, `nome_b`, `email_a`, `email_b` |
 | `pacientes` | `duo_id`, `nome`, `telefone`, `idade`, `alertas` (text), `queixa_principal`, `historico_medico`, `medicamentos` |
-| `consultas` | `duo_id`, `paciente_id`, `data` (yyyy-MM-dd), `horario`, `horario_fim`, `dupla` ("Estudante A"\|"B"), `status`, `descricao`, `dente`, `procedimento`, `proxima_sessao`, `confirmation_token` |
+| `consultas` | `duo_id`, `paciente_id`, `data` (yyyy-MM-dd), `horario`, `horario_fim`, `dupla` ("Estudante A"\|"B"), `status`, `clinica`, `descricao`, `dente`, `procedimento`, `proxima_sessao`, `confirmation_token` |
 | `plano_tratamento` | `duo_id`, `paciente_id`, `dente`, `procedimento`, `observacoes`, `status` |
-| `configuracoes` | `duo_id` (PK), `estudante_a`, `estudante_b`, `nome_clinica`, `turma`, `horarios_ativos` (array), `dias_ativos` (array int 1–6) |
+| `configuracoes` | `duo_id` (PK), `estudante_a`, `estudante_b`, `nome_clinica`, `turma`, `horarios_ativos[]`, `dias_ativos[]`, `clinicas_ativas[]` |
 | `dias_bloqueados` | `duo_id`, `data` (yyyy-MM-dd), `motivo` |
 | `push_subscriptions` | `duo_id`, `endpoint`, `p256dh`, `auth` |
+| `perfis` | `duo_id`, `user_id` (unique), `cpf`, `rg`, `periodo` (int), `foto_url` |
+
+**Storage:** bucket `avatars` (público) — fotos em `{duo_id}/{user_id}.ext`. RLS: INSERT/UPDATE apenas para `auth.uid() IS NOT NULL`.
 
 `mapConsulta()` em AppDataContext converte `paciente_id` → `pacienteId` ao carregar. Usar `c.pacienteId` no frontend, `paciente_id` no banco.
 
@@ -122,7 +133,8 @@ Cada dupla tem `duo_id` (UUID). Salvo em `user_metadata.duo_id` de cada usuário
 **Estados:**
 - `pacientes[]`, `consultas[]`, `plano[]`
 - `nomes`: `{estudanteA, estudanteB}`
-- `configuracoes`: `{nomeClinica, turma, horariosAtivos[], diasAtivos[]}`
+- `configuracoes`: `{nomeClinica, turma, horariosAtivos[], diasAtivos[], clinicasAtivas[]}`
+- `perfis[]` — perfis dos dois estudantes da dupla
 - `diasBloqueados[]`, `feriadosNacionais[]` (fetch `brasilapi.com.br`)
 - `loading: bool`
 
@@ -131,9 +143,16 @@ Cada dupla tem `duo_id` (UUID). Salvo em `user_metadata.duo_id` de cada usuário
 addPaciente / deletePaciente / updatePaciente / updatePacienteAlertas / updateAnamnese
 addConsulta / deleteConsulta / updateConsulta / updateConsultaStatus / updateConsultaDescricao / updateConsultaFicha
 updateNomes / updateConfiguracoes
+upsertPerfil
 addPlanoItem / updatePlanoStatus / deletePlanoItem
 bloquearDia / desbloquearDia
 ```
+
+**`updateConfiguracoes`** recebe `{ estudanteA, estudanteB, nomeClinica, turma, horariosAtivos, diasAtivos, clinicasAtivas }` — inclui `clinicas_ativas` no upsert.
+
+**`upsertPerfil`** recebe `{ user_id, cpf, rg, periodo, foto_url }` — faz upsert com `onConflict: 'user_id'`; atualiza `perfis[]` no estado local.
+
+**`addConsulta`** inclui o campo `clinica` no insert.
 
 **Realtime:**
 - Supabase channel escuta `postgres_changes` `UPDATE` em `consultas` filtrado por `duo_id`
@@ -146,23 +165,58 @@ bloquearDia / desbloquearDia
 ```
 ⚠️ Definido **duas vezes**: em `AppDataContext.jsx` e em `Dashboard.jsx` — não é uma constante compartilhada.
 
-`getSlotsInRange(inicio, fim)` retorna todos os slots entre início e fim (inclusive). Usado para verificar conflitos e renderizar blocos multi-slot.
+`getSlotsInRange(inicio, fim)` retorna todos os slots entre início e fim (inclusive).
 
 ---
 
 ## Fluxos implementados
 
-### Login / sessão
-Supabase email+senha; sem cadastro público. Usuário sem `duo_id` vê erro. Admin por comparação de email com `VITE_ADMIN_EMAIL`.
+### Login / sessão / recuperação
+- Supabase email+senha
+- "Esqueci minha senha": `supabase.auth.resetPasswordForEmail(email, { redirectTo: origin + '/' })` — envia link por e-mail
+- Ao clicar no link, Supabase emite evento `PASSWORD_RECOVERY` → `AuthContext` seta `recoveryMode = true` → `AppInner` exibe `<RedefinirSenha />`
+- `RedefinirSenha`: `supabase.auth.updateUser({ password })` → chama `setRecoveryMode(false)` após sucesso
 
-### Criar dupla (Admin)
+### Cadastro público de dupla
+1. Dupla preenche `/cadastro` (nome da dupla, nome/email/senha de A e B)
+2. `POST /api/solicitar-cadastro` — cria `duplas` com `status: 'pendente'` + 2 usuários auth com `user_metadata: { duo_id, status: 'pendente' }`
+3. Admin vê solicitação em `Admin.jsx` na seção "Solicitações Pendentes"
+4. Admin clica Aprovar → `POST /api/aprovar-dupla` → seta `status: 'ativo'` na dupla e nos dois usuários; cria `configuracoes` inicial com nomes dos estudantes
+5. Dupla pode fazer login normalmente
+
+**Usuário pendente:** `session.user.user_metadata.status === 'pendente'` → tela "Aguardando aprovação" com botão de recarregar. Compatível com duplas antigas (sem campo `status` → tratado como ativo).
+
+### Criar dupla direta (Admin)
 1. `POST /api/criar-dupla` com Bearer JWT do admin
-2. Insere linha em `duplas`
-3. `supabase.auth.admin.createUser` para estudante A (com `duo_id` em metadata, `email_confirm: true`)
-4. Mesmo para estudante B
+2. Insere linha em `duplas` com `status: 'ativo'`, `email_a`, `email_b`
+3. `supabase.auth.admin.createUser` para A e B (`email_confirm: true`)
+4. Salva `user_a_id`, `user_b_id` na dupla
 5. Rollback se B falhar: deleta usuário A + linha `duplas`
 
-Excluir dupla em `Admin.jsx`: deleta em cascata consultas, pacientes, plano_tratamento, dias_bloqueados, push_subscriptions, configuracoes, e os 2 usuários.
+### Editar dupla (Admin)
+`POST /api/editar-dupla` — atualiza `duplas.nome`, `email_a`, `email_b`; chama `updateUserById` para email e/ou senha (apenas se fornecidos).
+Para duplas antigas sem `user_a_id`/`user_b_id`: lazy-init busca todos os usuários e filtra por `duo_id` nos metadados, depois persiste os IDs encontrados.
+
+### Excluir dupla (Admin)
+Client-side em `Admin.jsx`: deleta em cascata consultas, pacientes, plano_tratamento, dias_bloqueados, push_subscriptions, configuracoes; depois deleta a linha `duplas`.
+
+### Minha Conta (Sidebar / MobileNav)
+Modal com duas abas:
+- **Senha**: `supabase.auth.updateUser({ password })` — usuário já autenticado, não pede senha atual
+- **E-mail**: `supabase.auth.updateUser({ email })` — Supabase envia confirmação para o novo e-mail
+
+### Perfis dos estudantes (`/perfil`)
+- `Perfil.jsx` carrega `perfis[]` do contexto + consulta `duplas` para determinar qual estudante é A ou B (`dupla.user_a_id === session.user.id`)
+- Exibe dois cards: próprio (editável) e parceiro (leitura)
+- Campos editáveis: CPF, RG, período (1–10), foto
+- Upload de foto: `supabase.storage.from('avatars').upload(path, file, { upsert: true })` → salva URL pública em `perfis.foto_url`
+- Path da foto: `{duo_id}/{user_id}.{ext}`
+
+### Clínicas por atendimento
+- `configuracoes.clinicasAtivas[]` — lista ativada via toggles nas Configurações
+- 12 opções predefinidas: Clínica Integrada, Periodontia, Dentística, Endodontia, Pediatria, Prótese Total, Prótese Parcial Removível, Cirurgia, Ortodontia, Saúde Coletiva, Urgência, Radiologia
+- Campo `clinica` visível no `Agendamento.jsx` apenas quando `clinicasAtivas.length > 0`
+- Badge vinho (`bg-[#800000]/10 text-[#800000]`) exibido no popup do Dashboard
 
 ### Agendamento
 Valida nesta ordem:
@@ -171,62 +225,43 @@ Valida nesta ordem:
 3. Feriado (`feriadosNacionais`)
 4. Dia inativo (`configuracoes.diasAtivos`)
 
-⚠️ **NÃO valida conflito de horário** — dois agendamentos podem ser criados no mesmo slot da mesma dupla sem aviso.
+⚠️ **NÃO valida conflito de horário** — dois agendamentos podem ser criados no mesmo slot.
 
-Dias da semana: `getDay()` retorna 0=Dom → mapeado para 7; `diasAtivos` usa 1–6 (Seg–Sáb).
-Datas sempre `yyyy-MM-dd` (sem timezone).
+Datas sempre `yyyy-MM-dd` (sem timezone). `getDay()` retorna 0=Dom → mapeado para 7; `diasAtivos` usa 1–6.
 
 ### HorarioPicker
-- 1º toque: define horário início
-- 2º toque no mesmo turno: define horário fim
-- Toque em turno diferente: reinicia seleção no novo turno
+- 1º toque: define início; 2º toque mesmo turno: define fim; turno diferente: reinicia
 - Slots filtrados por `configuracoes.horariosAtivos`
-- Exibe label `"HH:MM – HH:MM"` ou só `"HH:MM"` se sem fim
 
 ### Confirmação do paciente
-`/confirmar/:token` — rota pública, usa Supabase anon.
-Estados: Pendente/Realizado → exibe opções Confirmar/Cancelar. Confirmado/Cancelado → tela final.
-Ao confirmar: `POST /api/send-push` com `consulta_id`.
+`/confirmar/:token` — rota pública. Ao confirmar: `POST /api/send-push` com `consulta_id`.
+`send-push.js`: busca consulta, valida `status === "Confirmado"`, busca subscriptions, `Promise.allSettled`.
 
-`send-push.js`:
-- Busca consulta, valida `status === "Confirmado"`
-- Busca `push_subscriptions` da dupla
-- `Promise.allSettled` (falha individual não interrompe outras)
-- Payload: `{title: "Consulta confirmada! ✅", body: "{nome} confirmou para dd/MM às HH:MM", url: "/"}`
-
-### Dashboard — popup de edição de consulta
-Ao clicar em consulta na grade: popup com dados do paciente, select de status, editar data/horário/dupla, link WhatsApp (normaliza tel: remove `55` se presente, remove não-dígitos), link "Lembrete" (`/confirmar/:token`), link Prontuário, botão Apagar.
-
-`isContinuacao`: slot cujo horário ≠ `c.horario` (continuação de bloco multi-slot) — oculta badge de status para não duplicar.
+### Dashboard — popup de edição
+Clínica exibida como badge. WhatsApp normaliza tel (remove `55` se presente, remove não-dígitos). `isContinuacao`: slot cujo horário ≠ `c.horario` — oculta badge de status.
 
 ### Modal de bloqueio de dia
-4 estados em precedência: feriado → bloqueado manualmente → dia inativo → livre.
-`isDiaIndisponivel = isDiaBloqueado || isFeriado || isDiaInativo`
-Feriados: nome exibido mas não desbloqueável pelo usuário.
+4 estados: feriado → bloqueado → dia inativo → livre. Feriados não desbloqueáveis.
 
 ### Configurações (Sidebar/MobileNav modal)
 - Nomes dos estudantes, nome da clínica, turma
 - Toggle horários ativos (min 1 dos 11 slots)
 - Toggle dias ativos (min 1, Seg–Sáb)
+- Toggle clínicas ativas (sem mínimo)
 - UPSERT em `configuracoes` com `ON CONFLICT duo_id`
 
 ### Exportação
-| Tipo | CSV | PDF | PNG |
-|---|---|---|---|
-| Agenda (semana) | ✓ | ✓ | ✓ |
-| Ficha (1 consulta) | ✓ | ✓ | ✓ |
-| Prontuário (paciente completo) | ✓ | ✓ | ✓ |
-
-- CSV: BOM UTF-8; `esc()` anti-injection (`=+-@` prefixados com `'`); `downloadBlob` appenda ao DOM para iOS
+CSV, PDF e PNG para Agenda (semana), Ficha (1 consulta) e Prontuário (paciente completo).
+- CSV: BOM UTF-8; `esc()` anti-injection; `downloadBlob` appenda ao DOM para iOS
 - PDF: `window.open` + HTML + `window.print()` após 400ms
-- PNG: `html2canvas` em div `position:fixed; left:-9999px` (offscreen), `scale:2`, `useCORS:true`
+- PNG: `html2canvas` offscreen (`position:fixed; left:-9999px`), `scale:2`, `useCORS:true`
 
 ### Push notifications
-`usePushNotifications(duoId)`: solicita permissão, obtém subscription, upsert em `push_subscriptions` (conflict: `endpoint`). Retorna `{subscribed, loading, supported, subscribe, unsubscribe}`.
+`usePushNotifications(duoId)`: solicita permissão, upsert em `push_subscriptions` (conflict: `endpoint`).
 Service Worker em `/public/sw.js`. VAPID keys via env.
 
 ### Realtime
-Canal Supabase escuta `UPDATE` em `consultas` filtrado por `duo_id`. Atualiza estado local. Cleanup ao desmontar.
+Canal Supabase escuta `UPDATE` em `consultas` filtrado por `duo_id`. Cleanup ao desmontar.
 
 ---
 
@@ -260,7 +295,7 @@ Realizado: #4B5563  bg: #F3F4F6
 Font stack: `Manrope, Inter, sans-serif`
 `min-height: 48px` em inputs, `44px` em botões (touch targets).
 
-Status CSS: classes `.status-confirmado`, `.status-pendente`, `.status-cancelado`, `.status-realizado` definidas em `index.css` via `@layer utilities`.
+Status CSS: `.status-confirmado`, `.status-pendente`, `.status-cancelado`, `.status-realizado` — `index.css` via `@layer utilities`.
 
 ---
 
@@ -274,12 +309,11 @@ Status CSS: classes `.status-confirmado`, `.status-pendente`, `.status-cancelado
 **Nomenclatura:**
 - `dupla` no banco = `"Estudante A"` ou `"Estudante B"` (string literal)
 - Nomes reais: `nomes.estudanteA` / `nomes.estudanteB` (vêm de `configuracoes`)
-- Loading states: `salvando` (forms), `baixando` (export), `deletando`
+- Loading states: `salvando` (forms), `baixando` (export), `deletando`, `aprovando`
 - Alias `pacienteId` no frontend ↔ `paciente_id` no banco (via `mapConsulta`)
 
 **Estilo:**
 - Tailwind v4 puro — sem `@apply` em componentes, classes inline no JSX
-- Cores via variáveis CSS `--color-brand` etc., não hardcode
 - Modais: `fixed inset-0 bg-black/40 z-50`; desktop centered, mobile bottom-sheet
 
 **Segurança em exports:**
@@ -295,11 +329,10 @@ Status CSS: classes `.status-confirmado`, `.status-pendente`, `.status-cancelado
 - `getDataBloqueio()` duplicado em `Dashboard.jsx` e `Agendamento.jsx` — extrair para `lib/`
 - `supabaseNoSession.js` não é importado em nenhum arquivo ativo — pode deletar
 - **Sem validação de conflito de horário** — dois agendamentos no mesmo slot/dupla são possíveis
-- Feriados de `brasilapi.com.br`: se API fora do ar, `feriadosNacionais` fica vazio e feriados ficam desbloqueados silenciosamente
-- **Sem recuperação de senha** — não existe flow de reset (usuário precisa contatar admin)
+- Feriados de `brasilapi.com.br`: se API fora do ar, `feriadosNacionais` fica vazio silenciosamente
 - Admin delete não avisa se há consultas futuras — deleta tudo sem confirmação de impacto
-- Push notifications: falha silenciosa se browser não suporta (sem feedback ao usuário)
+- Push notifications: falha silenciosa se browser não suporta
 - Sem testes automatizados — validação 100% manual
-- `sharp` em `devDependencies` só serve para gerar ícones PWA via `scripts/generate-icons.mjs` (manual)
 - Export PNG demora 2–3s (html2canvas blocking na thread principal)
 - Sem logout automático por inatividade
+- Exportações (CSV/PDF/PNG) não incluem o campo `clinica` ainda
