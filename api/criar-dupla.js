@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     // 1. Criar dupla
     const { data: dupla, error: errDupla } = await supabase
       .from('duplas')
-      .insert([{ nome: nomeDupla }])
+      .insert([{ nome: nomeDupla, status: 'ativo', email_a: emailA.toLowerCase(), email_b: emailB.toLowerCase() }])
       .select()
       .single();
     if (errDupla) throw new Error(`Erro ao criar dupla: ${errDupla.message}`);
@@ -59,6 +59,12 @@ export default async function handler(req, res) {
       email_confirm: true,
     });
     if (errB) throw new Error(`Erro ao criar estudante B: ${errB.message}`);
+
+    // Salva os IDs dos usuários na dupla para edição futura
+    await supabase.from('duplas').update({
+      user_a_id: userAId,
+      user_b_id: dataB.user.id,
+    }).eq('id', duplaId);
 
     return res.status(200).json({ dupla });
 

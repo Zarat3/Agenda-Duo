@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Calendar, Users, PlusCircle, Settings, LogOut, ShieldCheck, X, Bell, BellOff, Smartphone, Building2, Clock, Download } from 'lucide-react';
+import { Home, Calendar, Users, PlusCircle, Settings, LogOut, ShieldCheck, X, Bell, BellOff, Smartphone, Building2, Clock, Download, UserCog, KeyRound, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { ExportarSection } from './ExportarSection';
+import { supabase } from '../lib/supabase';
 
 const ALL_TURNOS = [
   { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
@@ -33,9 +34,57 @@ export const MobileNav = ({ isAdmin }) => {
 
   const [modalAberto, setModalAberto] = useState(false);
   const [modalExportarAberto, setModalExportarAberto] = useState(false);
+  const [modalContaAberto, setModalContaAberto] = useState(false);
   const [form, setForm] = useState({});
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+
+  const [contaTab, setContaTab] = useState('senha');
+  const [contaForm, setContaForm] = useState({ senha: '', confirmarSenha: '', email: '' });
+  const [salvandoConta, setSalvandoConta] = useState(false);
+  const [erroConta, setErroConta] = useState('');
+  const [okConta, setOkConta] = useState('');
+
+  const abrirModalConta = () => {
+    setContaForm({ senha: '', confirmarSenha: '', email: '' });
+    setErroConta('');
+    setOkConta('');
+    setContaTab('senha');
+    setModalContaAberto(true);
+  };
+
+  const handleSalvarSenha = async () => {
+    if (contaForm.senha.length < 6) { setErroConta('A senha deve ter pelo menos 6 caracteres.'); return; }
+    if (contaForm.senha !== contaForm.confirmarSenha) { setErroConta('As senhas não coincidem.'); return; }
+    setSalvandoConta(true);
+    setErroConta('');
+    try {
+      const { error } = await supabase.auth.updateUser({ password: contaForm.senha });
+      if (error) throw new Error(error.message);
+      setOkConta('Senha alterada com sucesso!');
+      setContaForm(f => ({ ...f, senha: '', confirmarSenha: '' }));
+    } catch (err) {
+      setErroConta(err.message);
+    } finally {
+      setSalvandoConta(false);
+    }
+  };
+
+  const handleSalvarEmail = async () => {
+    if (!contaForm.email.trim() || !contaForm.email.includes('@')) { setErroConta('Informe um e-mail válido.'); return; }
+    setSalvandoConta(true);
+    setErroConta('');
+    try {
+      const { error } = await supabase.auth.updateUser({ email: contaForm.email.trim() });
+      if (error) throw new Error(error.message);
+      setOkConta('Confirmação enviada para o novo e-mail. Clique no link para concluir a alteração.');
+      setContaForm(f => ({ ...f, email: '' }));
+    } catch (err) {
+      setErroConta(err.message);
+    } finally {
+      setSalvandoConta(false);
+    }
+  };
 
   const abrirModal = () => {
     setForm({
@@ -126,10 +175,16 @@ export const MobileNav = ({ isAdmin }) => {
           >
             <Download size={20} />
           </button>
-          <button onClick={abrirModal} className="p-2 text-[#666666] hover:text-[#800000] transition-colors rounded-lg hover:bg-[#F9F9F9]">
+          <button onClick={abrirModal} className="p-2 text-[#666666] hover:text-[#800000] transition-colors rounded-lg hover:bg-[#F9F9F9]"
+            aria-label="Configurações">
             <Settings size={20} />
           </button>
-          <button onClick={signOut} className="p-2 text-[#666666] hover:text-[#C94C4C] transition-colors rounded-lg hover:bg-[#FDECEA]">
+          <button onClick={abrirModalConta} className="p-2 text-[#666666] hover:text-[#800000] transition-colors rounded-lg hover:bg-[#F9F9F9]"
+            aria-label="Minha Conta">
+            <UserCog size={20} />
+          </button>
+          <button onClick={signOut} className="p-2 text-[#666666] hover:text-[#C94C4C] transition-colors rounded-lg hover:bg-[#FDECEA]"
+            aria-label="Sair">
             <LogOut size={20} />
           </button>
         </div>
@@ -152,6 +207,90 @@ export const MobileNav = ({ isAdmin }) => {
           </NavLink>
         ))}
       </nav>
+
+      {modalContaAberto && (
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white rounded-t-2xl w-full flex flex-col max-h-[92vh] shadow-xl">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-[#DADADA] shrink-0">
+              <h2 className="text-base font-bold text-[#1A1A1A] flex items-center gap-2">
+                <UserCog size={18} className="text-[#800000]" />
+                Minha Conta
+              </h2>
+              <button onClick={() => setModalContaAberto(false)} className="text-[#666666] hover:text-[#1A1A1A]">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-5">
+              <div className="flex gap-2 mb-5 bg-[#F9F9F9] rounded-xl p-1">
+                <button type="button" onClick={() => { setContaTab('senha'); setErroConta(''); setOkConta(''); }}
+                  className={clsx('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-colors',
+                    contaTab === 'senha' ? 'bg-white text-[#800000] shadow-card' : 'text-[#666666]')}>
+                  <KeyRound size={14} /> Senha
+                </button>
+                <button type="button" onClick={() => { setContaTab('email'); setErroConta(''); setOkConta(''); }}
+                  className={clsx('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-colors',
+                    contaTab === 'email' ? 'bg-white text-[#800000] shadow-card' : 'text-[#666666]')}>
+                  <Mail size={14} /> E-mail
+                </button>
+              </div>
+
+              {erroConta && (
+                <div className="mb-4 p-3 bg-[#FDECEA] border border-[#C94C4C]/30 text-[#C94C4C] rounded-xl flex items-center gap-2 text-sm font-medium">
+                  <AlertCircle size={14} />{erroConta}
+                </div>
+              )}
+              {okConta && (
+                <div className="mb-4 p-3 bg-[#D8F3DC] border border-[#2D6A4F]/30 text-[#2D6A4F] rounded-xl flex items-center gap-2 text-sm font-medium">
+                  <CheckCircle size={14} />{okConta}
+                </div>
+              )}
+
+              {contaTab === 'senha' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-[#1A1A1A] mb-1 block">Nova Senha</label>
+                    <input type="password" value={contaForm.senha}
+                      onChange={e => setContaForm(f => ({ ...f, senha: e.target.value }))}
+                      placeholder="Mínimo 6 caracteres" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-[#1A1A1A] mb-1 block">Confirmar Nova Senha</label>
+                    <input type="password" value={contaForm.confirmarSenha}
+                      onChange={e => setContaForm(f => ({ ...f, confirmarSenha: e.target.value }))}
+                      placeholder="Repita a nova senha" className={inputCls} />
+                  </div>
+                  <button type="button" onClick={handleSalvarSenha} disabled={salvandoConta}
+                    className="w-full bg-[#800000] hover:bg-[#660000] disabled:bg-gray-300 text-white font-semibold py-3 rounded-xl transition-colors text-sm mt-1">
+                    {salvandoConta ? 'Salvando...' : 'Alterar Senha'}
+                  </button>
+                </div>
+              )}
+
+              {contaTab === 'email' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-[#666666]">
+                    E-mail atual: <span className="font-semibold text-[#1A1A1A]">{session?.user?.email}</span>
+                  </p>
+                  <div>
+                    <label className="text-xs font-semibold text-[#1A1A1A] mb-1 block">Novo E-mail</label>
+                    <input type="email" value={contaForm.email}
+                      onChange={e => setContaForm(f => ({ ...f, email: e.target.value }))}
+                      placeholder="novo@email.com" className={inputCls} />
+                  </div>
+                  <p className="text-xs text-[#666666]">
+                    Um link de confirmação será enviado para o novo e-mail.
+                  </p>
+                  <button type="button" onClick={handleSalvarEmail} disabled={salvandoConta}
+                    className="w-full bg-[#800000] hover:bg-[#660000] disabled:bg-gray-300 text-white font-semibold py-3 rounded-xl transition-colors text-sm">
+                    {salvandoConta ? 'Enviando...' : 'Alterar E-mail'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalExportarAberto && (
         <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">

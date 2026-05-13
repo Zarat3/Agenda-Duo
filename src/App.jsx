@@ -13,6 +13,8 @@ import { Admin } from './pages/Admin';
 import { Prontuario } from './pages/Prontuario';
 import { NovoPaciente } from './pages/NovoPaciente';
 import { Confirmar } from './pages/Confirmar';
+import { Cadastro } from './pages/Cadastro';
+import { RedefinirSenha } from './pages/RedefinirSenha';
 
 const LoadingScreen = () => (
   <div className="flex h-screen items-center justify-center bg-[#F9F9F9]">
@@ -32,12 +34,9 @@ function AppContent() {
 
   return (
     <div className="flex h-screen bg-[#F9F9F9] font-[Manrope,Inter,sans-serif]">
-      {/* Sidebar — somente desktop */}
       <div className="hidden md:block">
         <Sidebar isAdmin={isAdmin} />
       </div>
-
-      {/* Área principal */}
       <div className="flex flex-col flex-1 min-h-0">
         <MobileNav isAdmin={isAdmin} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
@@ -57,19 +56,41 @@ function AppContent() {
 }
 
 function AppInner() {
-  const { session, loadingAuth } = useAuth();
+  const { session, loadingAuth, recoveryMode } = useAuth();
 
   if (loadingAuth) return <LoadingScreen />;
   if (!session) return <Login />;
+  if (recoveryMode) return <RedefinirSenha />;
 
   const duoId = session.user.user_metadata?.duo_id;
+  const duoStatus = session.user.user_metadata?.status;
 
   if (!duoId) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#F9F9F9] font-['Inter',sans-serif]">
+      <div className="flex h-screen items-center justify-center bg-[#F9F9F9] font-[Inter,sans-serif]">
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center max-w-sm">
           <p className="text-[#800000] font-semibold text-lg">Conta sem dupla configurada</p>
           <p className="text-gray-500 text-sm mt-2">Contacte o administrador para vincular sua conta a uma dupla.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (duoStatus === 'pendente') {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F9F9F9] font-[Inter,sans-serif]">
+        <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center max-w-sm">
+          <p className="text-3xl mb-3">⏳</p>
+          <p className="text-[#7A5800] font-semibold text-lg">Cadastro aguardando aprovação</p>
+          <p className="text-gray-500 text-sm mt-2">
+            Sua solicitação foi recebida. Você receberá acesso assim que o administrador aprovar.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-5 text-sm text-[#666666] hover:text-[#800000] underline"
+          >
+            Já foi aprovado? Clique aqui para atualizar.
+          </button>
         </div>
       </div>
     );
@@ -88,6 +109,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/confirmar/:token" element={<Confirmar />} />
+          <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/*" element={<AppInner />} />
         </Routes>
       </BrowserRouter>
