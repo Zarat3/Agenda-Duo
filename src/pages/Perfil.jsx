@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Pencil, X, CheckCircle, AlertCircle, Camera, Loader } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Pencil, X, CheckCircle, AlertCircle, Camera, Loader, ShieldCheck } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -24,8 +25,10 @@ const PERIODOS = Array.from({ length: 10 }, (_, i) => i + 1);
 export const Perfil = () => {
   const { perfis, nomes, upsertPerfil } = useAppData();
   const { session } = useAuth();
+  const navigate = useNavigate();
   const userId = session?.user?.id;
   const duoId = session?.user?.user_metadata?.duo_id;
+  const isAdmin = session?.user?.email === import.meta.env.VITE_ADMIN_EMAIL;
   const fileRef = useRef(null);
 
   const [duplaInfo, setDuplaInfo] = useState(null);
@@ -155,6 +158,16 @@ export const Perfil = () => {
 
       <PerfilCard perfil={meuPerfil} label={meuLabel} isOwn={true} />
       <PerfilCard perfil={perfilParceiro} label={parceiroLabel} isOwn={false} />
+
+      {isAdmin && (
+        <button
+          onClick={() => navigate('/admin')}
+          className="w-full flex items-center gap-3 p-4 bg-[#800000] hover:bg-[#660000] text-white rounded-2xl font-semibold transition-colors shadow-card"
+        >
+          <ShieldCheck size={20} />
+          Painel Administrativo
+        </button>
+      )}
 
       {editando && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">

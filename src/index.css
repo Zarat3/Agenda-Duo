@@ -29,6 +29,10 @@
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     font-family: var(--font-manrope);
     background-color: var(--color-surface);
@@ -52,6 +56,10 @@
 }
 
 @layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   .shadow-card {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
