@@ -46,28 +46,32 @@ export default async function handler(req, res) {
       if (error) throw new Error(error.message);
     }
 
-    // Atualiza estudante A
-    if (userAId && (emailA?.trim() || senhaA?.length >= 6)) {
+    // Atualiza estudante A (independente de B)
+    if (userAId) {
       const updates = {};
-      if (emailA?.trim()) {
+      if (emailA !== undefined && emailA?.trim()) {
         updates.email = emailA.trim().toLowerCase();
         await supabase.from('duplas').update({ email_a: updates.email }).eq('id', duplaId);
       }
       if (senhaA?.length >= 6) updates.password = senhaA;
-      const { error } = await supabase.auth.admin.updateUserById(userAId, updates);
-      if (error) throw new Error(`Estudante A: ${error.message}`);
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.auth.admin.updateUserById(userAId, updates);
+        if (error) throw new Error(`Estudante A: ${error.message}`);
+      }
     }
 
-    // Atualiza estudante B
-    if (userBId && (emailB?.trim() || senhaB?.length >= 6)) {
+    // Atualiza estudante B (independente de A)
+    if (userBId) {
       const updates = {};
-      if (emailB?.trim()) {
+      if (emailB !== undefined && emailB?.trim()) {
         updates.email = emailB.trim().toLowerCase();
         await supabase.from('duplas').update({ email_b: updates.email }).eq('id', duplaId);
       }
       if (senhaB?.length >= 6) updates.password = senhaB;
-      const { error } = await supabase.auth.admin.updateUserById(userBId, updates);
-      if (error) throw new Error(`Estudante B: ${error.message}`);
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.auth.admin.updateUserById(userBId, updates);
+        if (error) throw new Error(`Estudante B: ${error.message}`);
+      }
     }
 
     // Armazena user IDs se ainda não estavam salvos

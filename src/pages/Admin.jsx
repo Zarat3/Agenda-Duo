@@ -120,36 +120,67 @@ export const Admin = () => {
       senhaA: '',
       emailB: dupla.email_b || '',
       senhaB: '',
+      // guarda valores originais para detectar mudanças
+      _original: {
+        nomeDupla: dupla.nome,
+        emailA: dupla.email_a || '',
+        emailB: dupla.email_b || '',
+      },
     });
     setErroEdit('');
     setOkEdit('');
   };
 
   const handleEditar = async () => {
-    if (!editForm.nomeDupla?.trim()) { setErroEdit('O nome é obrigatório.'); return; }
-    if (editForm.senhaA && editForm.senhaA.length < 6) { setErroEdit('Nova senha A: mínimo 6 caracteres.'); return; }
-    if (editForm.senhaB && editForm.senhaB.length < 6) { setErroEdit('Nova senha B: mínimo 6 caracteres.'); return; }
+    const orig = editForm._original || {};
+    const nomeMudou = editForm.nomeDupla.trim() !== (orig.nomeDupla || '');
+    const emailAMudou = editForm.emailA.trim() !== (orig.emailA || '');
+    const emailBMudou = editForm.emailB.trim() !== (orig.emailB || '');
+    const temSenhaA = editForm.senhaA?.length >= 6;
+    const temSenhaB = editForm.senhaB?.length >= 6;
+
+    if (nomeMudou && !editForm.nomeDupla?.trim()) { setErroEdit('O nome não pode ficar vazio.'); return; }
+    if (temSenhaA && editForm.senhaA.length < 6) { setErroEdit('Nova senha A: mínimo 6 caracteres.'); return; }
+    if (temSenhaB && editForm.senhaB.length < 6) { setErroEdit('Nova senha B: mínimo 6 caracteres.'); return; }
+
+    // Nada foi alterado
+    if (!nomeMudou && !emailAMudou && !temSenhaA && !emailBMudou && !temSenhaB) {
+      setErroEdit('Nenhuma alteração detectada.');
+      return;
+    }
+
     setSalvandoEdit(true);
     setErroEdit('');
     try {
+      const body = { duplaId: editando.id };
+      if (nomeMudou) body.nomeDupla = editForm.nomeDupla.trim();
+      // Só envia campos do estudante se houve alteração
+      if (emailAMudou || temSenhaA) {
+        body.emailA = emailAMudou ? editForm.emailA.trim() : undefined;
+        body.senhaA = temSenhaA ? editForm.senhaA : undefined;
+      }
+      if (emailBMudou || temSenhaB) {
+        body.emailB = emailBMudou ? editForm.emailB.trim() : undefined;
+        body.senhaB = temSenhaB ? editForm.senhaB : undefined;
+      }
+
       const res = await fetch('/api/editar-dupla', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
-        body: JSON.stringify({
-          duplaId: editando.id,
-          nomeDupla: editForm.nomeDupla.trim(),
-          emailA: editForm.emailA.trim(),
-          senhaA: editForm.senhaA || undefined,
-          emailB: editForm.emailB.trim(),
-          senhaB: editForm.senhaB || undefined,
-        }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Erro desconhecido');
-      setDuplas(prev => prev.map(d => d.id === editando.id
-        ? { ...d, nome: editForm.nomeDupla.trim(), email_a: editForm.emailA.trim(), email_b: editForm.emailB.trim() }
-        : d
-      ));
+
+      // Atualiza estado local
+      setDuplas(prev => prev.map(d => {
+        if (d.id !== editando.id) return d;
+        const atualizado = { ...d };
+        if (nomeMudou) atualizado.nome = editForm.nomeDupla.trim();
+        if (emailAMudou) atualizado.email_a = editForm.emailA.trim();
+        if (emailBMudou) atualizado.email_b = editForm.emailB.trim();
+        return atualizado;
+      }));
       setOkEdit('Alterações salvas!');
       setTimeout(() => setEditando(null), 1200);
     } catch (err) {

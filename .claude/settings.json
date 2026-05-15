@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(vercel env *)",
+      "Bash(vercel logs *)",
+      "Bash(cp \"/home/eliasaf/Documentos/Projetos/deepseek-claude/.claude/settings.local.json\" \"/home/eliasaf/Documentos/Projetos/Agenda Duo/.claude/settings.local.json\")",
+      "Bash(ls \"/home/eliasaf/Documentos/Obsidian Vault/D01 - Claude/\" 2>/dev/null || echo \"DIR_NOT_FOUND\")",
+      "Read(//home/eliasaf/Documentos/Obsidian Vault/D01 - Claude/**)",
+      "Bash(mkdir -p \"/home/eliasaf/Documentos/Projetos/aq-clubinho-app-2026-main/.claude\")",
+      "Bash(cp \"/home/eliasaf/Documentos/Projetos/deepseek-claude/.claude/settings.local.json\" \"/home/eliasaf/Documentos/Projetos/aq-clubinho-app-2026-main/.claude/settings.local.json\")",
+      "Bash(psql postgresql://postgres:...@aws-0-us-east-1.pooler.supabase.com:6543/postgres -c \"SELECT indexname FROM pg_indexes WHERE tablename = 'perfis';\")",
+      "Bash(curl -s \"https://akhjtlfbuvhjfatzamua.supabase.co/rest/v1/perfis?select=user_id,duo_id,count\" -H \"apikey: sb_publishable_uXhLWk9DxqiQvb8lzQluzA_oVzX9-yk\" -H \"Authorization: Bearer sb_publishable_uXhLWk9DxqiQvb8lzQluzA_oVzX9-yk\")",
+      "Bash(curl -s \"https://akhjtlfbuvhjfatzamua.supabase.co/rest/v1/perfis?select=user_id,duo_id,cpf,rg,periodo\" -H \"apikey: sb_publishable_uXhLWk9DxqiQvb8lzQluzA_oVzX9-yk\" -H \"Authorization: Bearer sb_publishable_uXhLWk9DxqiQvb8lzQluzA_oVzX9-yk\")",
+      "Bash(python3 -c ' *)"
+    ],
+    "additionalDirectories": [
+      "/home/eliasaf/Documentos/Projetos/deepseek-claude/.claude",
+      "/home/eliasaf/Documentos/Obsidian Vault/D01 - Claude"
+    ]
+  }
+}

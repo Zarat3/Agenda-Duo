@@ -1,3 +1,5 @@
+> **IMPORTANTE:** Sempre responda em português brasileiro (pt-BR), independentemente do idioma da pergunta.
+
 # CLAUDE.md — Agenda Duo
 
 ## O que é este projeto
@@ -57,12 +59,12 @@ Tailwind v4 usa `@theme` em `src/index.css` — não tem `tailwind.config.js`. C
     Prontuario.jsx           Ficha: alertas, anamnese, plano, histórico de consultas
     Agendamento.jsx          Novo agendamento + HorarioPicker modal + seletor de clínica
     Confirmar.jsx            Página pública /confirmar/:token (sem auth)
-    Perfil.jsx               Perfis dos dois estudantes (CPF, RG, período, foto)
+    Perfil.jsx               Perfis dos dois estudantes (período, foto)
     Admin.jsx                Aprovação de pendentes + criar/editar/excluir duplas
 
   components/
-    Sidebar.jsx              Nav desktop + modais Exportar, Configurações, Minha Conta
-    MobileNav.jsx            Header sticky + bottom nav + mesmos três modais
+    Sidebar.jsx              Nav desktop + modais Exportar e Configurações (conta dentro de Config.)
+    MobileNav.jsx            Header sticky + bottom nav (4 itens) + modais Exportar e Configurações
     ExportarSection.jsx      Seletor tipo (Agenda/Ficha/Prontuário) + formato (CSV/PDF/PNG)
     StatusBadge.jsx          Badge de status reutilizável
 
@@ -200,15 +202,16 @@ Para duplas antigas sem `user_a_id`/`user_b_id`: lazy-init busca todos os usuár
 ### Excluir dupla (Admin)
 Client-side em `Admin.jsx`: deleta em cascata consultas, pacientes, plano_tratamento, dias_bloqueados, push_subscriptions, configuracoes; depois deleta a linha `duplas`.
 
-### Minha Conta (Sidebar / MobileNav)
-Modal com duas abas:
+### Minha Conta (dentro das Configurações)
+A seção "Conta" fica dentro do modal de Configurações (Sidebar e MobileNav), com duas abas:
 - **Senha**: `supabase.auth.updateUser({ password })` — usuário já autenticado, não pede senha atual
 - **E-mail**: `supabase.auth.updateUser({ email })` — Supabase envia confirmação para o novo e-mail
+- Exibe o email do usuário logado no topo da seção
 
 ### Perfis dos estudantes (`/perfil`)
 - `Perfil.jsx` carrega `perfis[]` do contexto + consulta `duplas` para determinar qual estudante é A ou B (`dupla.user_a_id === session.user.id`)
 - Exibe dois cards: próprio (editável) e parceiro (leitura)
-- Campos editáveis: CPF, RG, período (1–10), foto
+- Campos editáveis: período (1–10) e foto (CPF e RG removidos por segurança)
 - Upload de foto: `supabase.storage.from('avatars').upload(path, file, { upsert: true })` → salva URL pública em `perfis.foto_url`
 - Path da foto: `{duo_id}/{user_id}.{ext}`
 
@@ -336,3 +339,13 @@ Status CSS: `.status-confirmado`, `.status-pendente`, `.status-cancelado`, `.sta
 - Export PNG demora 2–3s (html2canvas blocking na thread principal)
 - Sem logout automático por inatividade
 - Exportações (CSV/PDF/PNG) não incluem o campo `clinica` ainda
+
+---
+
+## Modelo de IA em uso
+
+Este projeto está configurado para usar **DeepSeek V4 Pro** via OpenRouter em vez da API oficial da Anthropic.
+
+- Ativar DeepSeek: `/deepseek-on`
+- Desativar (voltar ao Claude): `/deepseek-off`
+- Configuração em: `.claude/settings.local.json`

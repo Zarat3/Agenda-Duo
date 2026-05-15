@@ -52,8 +52,6 @@ export const Perfil = () => {
 
   const abrirEditar = () => {
     setEditForm({
-      cpf: meuPerfil?.cpf || '',
-      rg: meuPerfil?.rg || '',
       periodo: meuPerfil?.periodo || '',
       foto_url: meuPerfil?.foto_url || '',
     });
@@ -88,8 +86,6 @@ export const Perfil = () => {
       }
       await upsertPerfil({
         user_id: userId,
-        cpf: editForm.cpf.trim() || null,
-        rg: editForm.rg.trim() || null,
         periodo: editForm.periodo ? Number(editForm.periodo) : null,
         foto_url: fotoUrl || null,
       });
@@ -127,20 +123,12 @@ export const Perfil = () => {
       </div>
 
       {perfil ? (
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <div className="bg-[#F9F9F9] rounded-xl p-3">
+        <div className="mt-4">
+          <div className="bg-[#F9F9F9] rounded-xl p-3 inline-block">
             <p className="text-[10px] font-bold text-[#999] uppercase tracking-wide mb-0.5">Período</p>
             <p className="text-sm font-semibold text-[#1A1A1A]">
               {perfil.periodo ? `${perfil.periodo}º` : '—'}
             </p>
-          </div>
-          <div className="bg-[#F9F9F9] rounded-xl p-3">
-            <p className="text-[10px] font-bold text-[#999] uppercase tracking-wide mb-0.5">CPF</p>
-            <p className="text-sm font-semibold text-[#1A1A1A] truncate">{perfil.cpf || '—'}</p>
-          </div>
-          <div className="bg-[#F9F9F9] rounded-xl p-3">
-            <p className="text-[10px] font-bold text-[#999] uppercase tracking-wide mb-0.5">RG</p>
-            <p className="text-sm font-semibold text-[#1A1A1A] truncate">{perfil.rg || '—'}</p>
           </div>
         </div>
       ) : (
@@ -220,28 +208,7 @@ export const Perfil = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-[#1A1A1A] mb-1 block">CPF</label>
-                <input
-                  type="text"
-                  value={editForm.cpf}
-                  onChange={e => setEditForm(f => ({ ...f, cpf: e.target.value }))}
-                  placeholder="000.000.000-00"
-                  className={inputCls}
-                />
               </div>
-
-              <div>
-                <label className="text-xs font-semibold text-[#1A1A1A] mb-1 block">RG</label>
-                <input
-                  type="text"
-                  value={editForm.rg}
-                  onChange={e => setEditForm(f => ({ ...f, rg: e.target.value }))}
-                  placeholder="0000000"
-                  className={inputCls}
-                />
-              </div>
-            </div>
 
             <div className="px-6 py-4 border-t border-[#DADADA] shrink-0">
               {erro && (
