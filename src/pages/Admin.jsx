@@ -96,7 +96,7 @@ export const Admin = () => {
   const handleDelete = async (id) => {
     setDeletando(true);
     try {
-      const tables = ['consultas', 'pacientes', 'plano_tratamento', 'dias_bloqueados', 'push_subscriptions', 'configuracoes'];
+      const tables = ['consultas', 'plano_tratamento', 'pacientes', 'dias_bloqueados', 'push_subscriptions', 'perfis', 'configuracoes'];
       for (const table of tables) {
         await supabase.from(table).delete().eq('duo_id', id);
       }
