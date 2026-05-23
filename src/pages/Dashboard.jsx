@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   ChevronLeft, ChevronRight, X,
   Phone, MessageCircle, FileText, AlertTriangle, Lock, LockOpen, Trash2, Download,
@@ -236,6 +237,7 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
 export const Dashboard = () => {
   const { consultas, pacientes, nomes, configuracoes, diasBloqueados, feriadosNacionais, updateConsulta, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
   const navigate = useNavigate();
+  const { setFiltroAtivo } = useTheme() || {};
 
   // Desktop: semana
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -245,6 +247,13 @@ export const Dashboard = () => {
   const [filtro, setFiltro] = useState({ 'Estudante A': true, 'Estudante B': true });
   const [popup, setPopup]   = useState(null);
   const [modalDia, setModalDia] = useState(null);
+
+  useEffect(() => {
+    if (!setFiltroAtivo) return;
+    const soA = filtro['Estudante A'] && !filtro['Estudante B'];
+    const soB = !filtro['Estudante A'] && filtro['Estudante B'];
+    setFiltroAtivo(soA ? 'A' : soB ? 'B' : null);
+  }, [filtro, setFiltroAtivo]);
 
   const TURNOS = TURNOS_BASE.map(t => ({
     ...t, slots: t.slots.filter(s => configuracoes.horariosAtivos.includes(s)),
@@ -581,7 +590,14 @@ export const Dashboard = () => {
                         )}
                         {items.length > 0
                           ? items.map(c => <ConsultaCard key={c.id} c={c} horarioAtual={horario} />)
-                          : <p className="text-xs text-gray-300 italic">Livre</p>
+                          : (
+                            <button
+                              onClick={() => navigate('/agendamento', { state: { data: diaStr, horario } })}
+                              className="text-xs text-gray-300 italic hover:text-[#800000] hover:font-semibold transition-colors w-full text-left"
+                            >
+                              Livre — toque para agendar
+                            </button>
+                          )
                         }
                       </div>
                     </div>
@@ -725,6 +741,14 @@ export const Dashboard = () => {
                                     </button>
                                   );
                                 })}
+                                {items.length === 0 && !bloqueado && (
+                                  <button
+                                    onClick={() => navigate('/agendamento', { state: { data: dateStr, horario } })}
+                                    className="w-full h-full min-h-[40px] rounded text-[10px] text-gray-200 hover:text-[#800000] hover:bg-[#800000]/5 transition-all text-center leading-tight"
+                                  >
+                                    +
+                                  </button>
+                                )}
                               </>
                             </div>
                           );

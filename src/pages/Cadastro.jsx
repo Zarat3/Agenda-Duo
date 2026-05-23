@@ -45,10 +45,9 @@ export const Cadastro = () => {
       <div className="min-h-screen bg-[#F9F9F9] flex flex-col items-center justify-center px-4 font-[Manrope,Inter,sans-serif]">
         <div className="bg-white rounded-2xl shadow-card border border-[#DADADA] w-full max-w-sm p-8 text-center">
           <CheckCircle size={48} className="text-[#2D6A4F] mx-auto mb-4" />
-          <h2 className="text-xl font-extrabold text-[#1A1A1A] mb-2">Solicitação enviada!</h2>
+          <h2 className="text-xl font-extrabold text-[#1A1A1A] mb-2">Cadastro realizado!</h2>
           <p className="text-sm text-[#666666] leading-relaxed">
-            Seu cadastro foi recebido e está aguardando aprovação do administrador.
-            Assim que aprovado, vocês poderão fazer login normalmente.
+            A dupla foi criada com sucesso. Vocês já podem fazer login com os e-mails e senhas cadastrados.
           </p>
           <a href="/" className="mt-6 inline-block text-sm font-semibold text-[#800000] hover:underline">
             Ir para o login →
@@ -70,7 +69,7 @@ export const Cadastro = () => {
           <UserPlus size={20} className="text-[#800000]" />
           Solicitar Cadastro
         </h2>
-        <p className="text-sm text-[#666666] mb-6">Crie a conta da sua dupla. A aprovação é feita pelo administrador.</p>
+        <p className="text-sm text-[#666666] mb-6">Crie a conta da sua dupla. O acesso é liberado imediatamente após o cadastro.</p>
 
         {erro && (
           <div className="mb-5 p-4 bg-[#FDECEA] border border-[#C94C4C]/30 text-[#C94C4C] rounded-xl flex items-start gap-3">

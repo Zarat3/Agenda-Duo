@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Calendar, Users, Settings, LogOut, X, Bell, BellOff, Smartphone, Building2, Clock, Download, UserCircle, Stethoscope, KeyRound, Mail, CheckCircle, AlertCircle } from 'lucide-react';
+import { Home, Calendar, Users, Settings, LogOut, X, Bell, BellOff, Smartphone, Building2, Clock, Download, UserCircle, Stethoscope, KeyRound, Mail, CheckCircle, AlertCircle, Palette, MessageSquarePlus } from 'lucide-react';
 import clsx from 'clsx';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { ExportarSection } from './ExportarSection';
 import { supabase } from '../lib/supabase';
+
+const CORES_PRESET = ['#800000', '#1e40af', '#065f46', '#7c3aed', '#b45309', '#be185d', '#0f766e', '#1d4ed8'];
 
 const ALL_TURNOS = [
   { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
@@ -29,6 +32,7 @@ const sectionTitle = 'text-xs font-bold text-[#666666] uppercase tracking-widest
 export const MobileNav = ({ isAdmin }) => {
   const { nomes, configuracoes, updateConfiguracoes } = useAppData();
   const { signOut, session } = useAuth();
+  const { cores, setCor } = useTheme() || {};
   const duoId = session?.user?.user_metadata?.duo_id;
   const { subscribed, loading: loadingPush, supported: pushSupported, subscribe, unsubscribe } = usePushNotifications(duoId);
 
@@ -43,6 +47,24 @@ export const MobileNav = ({ isAdmin }) => {
   const [salvandoConta, setSalvandoConta] = useState(false);
   const [erroConta, setErroConta] = useState('');
   const [okConta, setOkConta] = useState('');
+
+  const [sugestaoTexto, setSugestaoTexto] = useState('');
+  const [sugestoes, setSugestoes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`duo_sugestoes_${duoId}`)) || []; } catch { return []; }
+  });
+  const [sugestaoEnviada, setSugestaoEnviada] = useState(false);
+
+  const handleEnviarSugestao = () => {
+    const texto = sugestaoTexto.trim();
+    if (!texto) return;
+    const nova = { texto, data: new Date().toISOString() };
+    const novas = [nova, ...sugestoes];
+    setSugestoes(novas);
+    try { localStorage.setItem(`duo_sugestoes_${duoId}`, JSON.stringify(novas)); } catch {}
+    setSugestaoTexto('');
+    setSugestaoEnviada(true);
+    setTimeout(() => setSugestaoEnviada(false), 2500);
+  };
 
   const handleSalvarSenha = async () => {
     if (contaForm.senha.length < 6) { setErroConta('A senha deve ter pelo menos 6 caracteres.'); return; }
@@ -206,8 +228,9 @@ export const MobileNav = ({ isAdmin }) => {
             end={item.to === '/'}
             className={({ isActive }) => clsx(
               'flex flex-col items-center py-2.5 px-3 text-xs font-semibold transition-colors min-w-0',
-              isActive ? 'text-[#800000]' : 'text-[#666666]'
+              isActive ? '' : 'text-[#666666]'
             )}
+            style={({ isActive }) => isActive ? { color: 'var(--duo-accent, #800000)' } : {}}
           >
             <item.icon size={22} />
             <span className="mt-1 truncate">{item.label}</span>
@@ -373,6 +396,73 @@ export const MobileNav = ({ isAdmin }) => {
                   </button>
                 </div>
               )}
+
+              {/* Cores dos integrantes */}
+              {cores && (
+                <div>
+                  <p className={sectionTitle}>
+                    <Palette size={13} /> Cores dos Integrantes
+                  </p>
+                  <p className="text-xs text-[#666666] mb-3">Escolha uma cor para cada integrante. Ela será aplicada quando apenas um estiver selecionado na Agenda.</p>
+                  {[
+                    { key: 'A', label: nomes.estudanteA || 'Estudante A' },
+                    { key: 'B', label: nomes.estudanteB || 'Estudante B' },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="mb-3">
+                      <p className="text-xs font-semibold text-[#1A1A1A] mb-1.5">{label}</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {CORES_PRESET.map(cor => (
+                          <button key={cor} type="button" onClick={() => setCor(key, cor)}
+                            className={`w-8 h-8 rounded-full transition-all border-2 ${cores[key] === cor ? 'border-[#1A1A1A] scale-110' : 'border-transparent'}`}
+                            style={{ backgroundColor: cor }}
+                            title={cor}
+                          />
+                        ))}
+                        <input type="color" value={cores[key] || '#800000'}
+                          onChange={e => setCor(key, e.target.value)}
+                          className="w-8 h-8 rounded-full border border-[#DADADA] cursor-pointer p-0 overflow-hidden"
+                          title="Cor personalizada"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Sugestões */}
+              <div>
+                <p className={sectionTitle}>
+                  <MessageSquarePlus size={13} /> Sugestões
+                </p>
+                <p className="text-xs text-[#666666] mb-2">Tem uma ideia de melhoria? Registre aqui.</p>
+                <textarea
+                  value={sugestaoTexto}
+                  onChange={e => setSugestaoTexto(e.target.value)}
+                  rows={3}
+                  placeholder="Descreva sua sugestão..."
+                  className={`${inputCls} resize-none mb-2`}
+                />
+                {sugestaoEnviada && (
+                  <p className="text-xs text-[#2D6A4F] font-medium mb-2 flex items-center gap-1">
+                    <CheckCircle size={12} /> Sugestão registrada!
+                  </p>
+                )}
+                <button type="button" onClick={handleEnviarSugestao} disabled={!sugestaoTexto.trim()}
+                  className="w-full bg-[#800000] hover:bg-[#660000] disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors mb-4">
+                  Enviar sugestão
+                </button>
+                {sugestoes.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-[#666666] uppercase tracking-widest">Sugestões anteriores</p>
+                    {sugestoes.slice(0, 5).map((s, i) => (
+                      <div key={i} className="bg-[#F9F9F9] rounded-xl p-3 border border-[#DADADA]">
+                        <p className="text-xs text-[#1A1A1A]">{s.texto}</p>
+                        <p className="text-[10px] text-[#999] mt-1">{new Date(s.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Conta */}
               <div className="border-t border-[#DADADA] pt-5">

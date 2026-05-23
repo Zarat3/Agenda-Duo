@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Pencil, X, CheckCircle, AlertCircle, Camera, Loader, ShieldCheck } from 'lucide-react';
+import { User, Pencil, X, CheckCircle, AlertCircle, Camera, Loader, ShieldCheck, BarChart2 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -158,6 +158,14 @@ export const Perfil = () => {
 
       <PerfilCard perfil={meuPerfil} label={meuLabel} isOwn={true} />
       <PerfilCard perfil={perfilParceiro} label={parceiroLabel} isOwn={false} />
+
+      <button
+        onClick={() => navigate('/estatisticas')}
+        className="w-full flex items-center gap-3 p-4 bg-white hover:bg-[#F9F9F9] border border-[#DADADA] text-[#800000] rounded-2xl font-semibold transition-colors shadow-card"
+      >
+        <BarChart2 size={20} />
+        Ver Estatísticas
+      </button>
 
       {isAdmin && (
         <button

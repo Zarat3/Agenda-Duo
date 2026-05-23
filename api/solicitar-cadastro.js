@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       .from('duplas')
       .insert([{
         nome: nomeDupla.trim(),
-        status: 'pendente',
+        status: 'ativo',
         nome_a: nomeA.trim(),
         nome_b: nomeB.trim(),
         email_a: emailA.trim().toLowerCase(),
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     const { data: dataA, error: errA } = await supabase.auth.admin.createUser({
       email: emailA.trim().toLowerCase(),
       password: senhaA,
-      user_metadata: { duo_id: duplaId, status: 'pendente' },
+      user_metadata: { duo_id: duplaId, status: 'ativo' },
       email_confirm: true,
     });
     if (errA) throw new Error(`Estudante A: ${errA.message}`);
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     const { data: dataB, error: errB } = await supabase.auth.admin.createUser({
       email: emailB.trim().toLowerCase(),
       password: senhaB,
-      user_metadata: { duo_id: duplaId, status: 'pendente' },
+      user_metadata: { duo_id: duplaId, status: 'ativo' },
       email_confirm: true,
     });
     if (errB) throw new Error(`Estudante B: ${errB.message}`);
@@ -61,6 +61,18 @@ export default async function handler(req, res) {
       user_a_id: userAId,
       user_b_id: dataB.user.id,
     }).eq('id', duplaId);
+
+    await supabase.from('configuracoes').upsert(
+      {
+        duo_id: duplaId,
+        estudante_a: nomeA.trim(),
+        estudante_b: nomeB.trim(),
+        nome_clinica: 'Clínica Odontológica Universitária',
+        horarios_ativos: ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','16:20','17:20','18:20'],
+        dias_ativos: [1,2,3,4,5,6],
+      },
+      { onConflict: 'duo_id', ignoreDuplicates: true }
+    );
 
     return res.status(200).json({ ok: true });
 

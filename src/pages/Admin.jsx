@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   ShieldCheck, Plus, Users, CheckCircle, AlertCircle, Loader,
-  Trash2, X, Clock, Pencil, UserCheck,
+  Trash2, X, Pencil, AlertTriangle,
 } from 'lucide-react';
 
 const inputCls = 'w-full border border-[#DADADA] rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#800000] focus:border-[#800000] text-[#1A1A1A] text-sm bg-white';
@@ -15,12 +15,12 @@ const emptyForm = {
 
 export const Admin = () => {
   const [duplas, setDuplas] = useState([]);
+  const [contagens, setContagens] = useState({});
   const [form, setForm] = useState(emptyForm);
   const [estado, setEstado] = useState({ tipo: '', msg: '' });
   const [salvando, setSalvando] = useState(false);
   const [confirmandoDelete, setConfirmandoDelete] = useState(null);
   const [deletando, setDeletando] = useState(false);
-  const [aprovando, setAprovando] = useState(null);
 
   const [editando, setEditando] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -32,10 +32,20 @@ export const Admin = () => {
     supabase.from('duplas').select('*').order('nome').then(({ data }) => {
       if (data) setDuplas(data);
     });
+
+    // Carrega contagens via API serverless (service role ignora RLS)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      fetch('/api/contagens-duplas', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+        .then(r => r.json())
+        .then(({ contagens }) => { if (contagens) setContagens(contagens); })
+        .catch(() => {});
+    });
   }, []);
 
-  const pendentes = duplas.filter(d => d.status === 'pendente');
-  const ativas = duplas.filter(d => d.status !== 'pendente');
+  const ativas = duplas;
 
   const getToken = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -74,34 +84,16 @@ export const Admin = () => {
     }
   };
 
-  const handleAprovar = async (dupla) => {
-    setAprovando(dupla.id);
-    try {
-      const res = await fetch('/api/aprovar-dupla', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
-        body: JSON.stringify({ duplaId: dupla.id }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erro desconhecido');
-      setDuplas(prev => prev.map(d => d.id === dupla.id ? { ...d, status: 'ativo' } : d));
-      setEstado({ tipo: 'ok', msg: `Dupla "${dupla.nome}" aprovada com sucesso!` });
-    } catch (err) {
-      setEstado({ tipo: 'erro', msg: err.message });
-    } finally {
-      setAprovando(null);
-    }
-  };
-
   const handleDelete = async (id) => {
     setDeletando(true);
     try {
-      const tables = ['consultas', 'plano_tratamento', 'pacientes', 'dias_bloqueados', 'push_subscriptions', 'perfis', 'configuracoes'];
-      for (const table of tables) {
-        await supabase.from(table).delete().eq('duo_id', id);
-      }
-      const { error } = await supabase.from('duplas').delete().eq('id', id);
-      if (error) throw new Error(error.message);
+      const res = await fetch('/api/excluir-dupla', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getToken()}` },
+        body: JSON.stringify({ duplaId: id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erro desconhecido');
       setDuplas(prev => prev.filter(d => d.id !== id));
       setConfirmandoDelete(null);
       setEstado({ tipo: 'ok', msg: 'Dupla excluída com sucesso.' });
@@ -211,63 +203,6 @@ export const Admin = () => {
         </div>
       )}
 
-      {/* Solicitações pendentes */}
-      {pendentes.length > 0 && (
-        <div className="bg-[#FFF3CD] border border-[#7A5800]/20 rounded-2xl p-6">
-          <h3 className="text-base font-bold text-[#7A5800] mb-4 flex items-center gap-2">
-            <Clock size={18} />
-            Solicitações Pendentes ({pendentes.length})
-          </h3>
-          <div className="space-y-3">
-            {pendentes.map(d => (
-              <div key={d.id} className="bg-white rounded-xl border border-[#DADADA] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-[#1A1A1A]">{d.nome}</p>
-                    <p className="text-xs text-[#666666] mt-0.5 truncate">
-                      {d.email_a || '—'} · {d.email_b || '—'}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => handleAprovar(d)}
-                      disabled={aprovando === d.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2D6A4F] hover:bg-[#245940] disabled:bg-gray-300 text-white text-xs font-semibold rounded-xl transition-colors"
-                    >
-                      {aprovando === d.id ? <Loader size={12} className="animate-spin" /> : <UserCheck size={12} />}
-                      Aprovar
-                    </button>
-                    <button
-                      onClick={() => setConfirmandoDelete(d.id)}
-                      className="p-1.5 text-[#C94C4C] hover:bg-[#FDECEA] rounded-xl transition-colors"
-                      title="Recusar"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-                {confirmandoDelete === d.id && (
-                  <div className="mt-3 bg-[#FDECEA] border border-[#C94C4C]/30 rounded-xl p-3">
-                    <p className="text-xs font-semibold text-[#C94C4C] mb-2">Recusar e excluir "{d.nome}"?</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => setConfirmandoDelete(null)}
-                        className="flex-1 text-xs font-medium py-2 border border-[#DADADA] rounded-xl bg-white text-[#666666]">
-                        Cancelar
-                      </button>
-                      <button onClick={() => handleDelete(d.id)} disabled={deletando}
-                        className="flex-1 text-xs font-semibold py-2 bg-[#C94C4C] hover:bg-[#a83838] disabled:bg-gray-300 text-white rounded-xl transition-colors flex justify-center items-center gap-1.5">
-                        {deletando ? <Loader size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                        Excluir
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Criar nova dupla */}
       <div className="bg-white p-6 rounded-2xl shadow-card border border-[#DADADA]">
         <h3 className="text-base font-bold text-[#1A1A1A] mb-5 flex items-center gap-2">
@@ -317,16 +252,63 @@ export const Admin = () => {
           <p className="text-[#666666] text-sm text-center py-4">Nenhuma dupla ativa ainda.</p>
         ) : (
           <div className="space-y-2">
-            {ativas.map(d => (
+            {ativas.map(d => {
+              const cnt = contagens[d.id] || { pacientes: 0, consultas: 0 };
+              const temDados = cnt.pacientes > 0 || cnt.consultas > 0;
+              const emailAFaltando = !d.email_a && d.user_a_id;
+              const emailBFaltando = !d.email_b && d.user_b_id;
+              const semUsuarios = !d.user_a_id && !d.user_b_id;
+              const temProblema = emailAFaltando || emailBFaltando;
+
+              return (
               <div key={d.id}>
-                <div className="flex items-center justify-between p-3 bg-[#F9F9F9] rounded-xl border border-[#DADADA]">
-                  <div className="min-w-0">
-                    <span className="font-semibold text-[#1A1A1A]">{d.nome}</span>
-                    {(d.email_a || d.email_b) && (
-                      <p className="text-xs text-[#666666] truncate mt-0.5">
-                        {d.email_a || '—'} · {d.email_b || '—'}
-                      </p>
-                    )}
+                <div className={`flex items-center justify-between p-3 rounded-xl border ${temProblema ? 'bg-amber-50 border-amber-200' : 'bg-[#F9F9F9] border-[#DADADA]'}`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[#1A1A1A]">{d.nome}</span>
+
+                      {/* Badge de dados */}
+                      {temDados ? (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#D8F3DC] text-[#2D6A4F]">
+                          {cnt.pacientes} pac · {cnt.consultas} cons
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                          vazia
+                        </span>
+                      )}
+
+                      {/* Badge sem usuários vinculados */}
+                      {semUsuarios && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                          sem conta
+                        </span>
+                      )}
+
+                      {/* Alerta de email faltando */}
+                      {temProblema && (
+                        <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          <AlertTriangle size={10} />
+                          {emailAFaltando && emailBFaltando ? 'emails A e B faltando' : emailAFaltando ? 'email A faltando' : 'email B faltando'}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-[#666666] truncate mt-0.5">
+                      {d.email_a
+                        ? d.email_a
+                        : d.user_a_id
+                          ? <span className="text-amber-600 font-semibold">A: sem email cadastrado</span>
+                          : <span className="text-gray-400">A: —</span>
+                      }
+                      {' · '}
+                      {d.email_b
+                        ? d.email_b
+                        : d.user_b_id
+                          ? <span className="text-amber-600 font-semibold">B: sem email cadastrado</span>
+                          : <span className="text-gray-400">B: —</span>
+                      }
+                    </p>
                   </div>
                   <div className="flex gap-1 shrink-0 ml-2">
                     <button onClick={() => abrirEditar(d)}
@@ -347,9 +329,15 @@ export const Admin = () => {
                       <p className="text-sm font-semibold text-[#C94C4C]">Excluir "{d.nome}"?</p>
                       <button onClick={() => setConfirmandoDelete(null)} className="text-[#666666]"><X size={14} /></button>
                     </div>
-                    <p className="text-xs text-[#C94C4C] mb-3">
-                      Todos os pacientes, consultas e dados serão apagados permanentemente.
-                    </p>
+                    {temDados ? (
+                      <p className="text-xs text-[#C94C4C] mb-3 font-semibold">
+                        ⚠️ Esta dupla tem {cnt.pacientes} paciente(s) e {cnt.consultas} consulta(s). Tudo será apagado permanentemente.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-[#C94C4C] mb-3">
+                        Esta dupla está vazia. Será removida do sistema.
+                      </p>
+                    )}
                     <div className="flex gap-2">
                       <button onClick={() => setConfirmandoDelete(null)}
                         className="flex-1 text-xs font-medium py-2 border border-[#DADADA] rounded-xl bg-white text-[#666666]">
@@ -364,7 +352,8 @@ export const Admin = () => {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

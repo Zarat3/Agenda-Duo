@@ -28,6 +28,10 @@
   --color-status-neutral-bg: #F3F4F6;
 }
 
+:root {
+  --duo-accent: #800000;
+}
+
 @layer base {
   html {
     overflow-x: hidden;

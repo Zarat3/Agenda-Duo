@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppDataProvider, useAppData } from './context/AppDataContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Sidebar } from './components/Sidebar';
 import { MobileNav } from './components/MobileNav';
 import { Home } from './pages/Home';
@@ -16,6 +17,7 @@ import { Confirmar } from './pages/Confirmar';
 import { Perfil } from './pages/Perfil';
 import { Cadastro } from './pages/Cadastro';
 import { RedefinirSenha } from './pages/RedefinirSenha';
+import { Estatisticas } from './pages/Estatisticas';
 
 const LoadingScreen = () => (
   <div className="flex h-screen items-center justify-center bg-[#F9F9F9]">
@@ -49,6 +51,7 @@ function AppContent() {
             <Route path="/pacientes/:id" element={<Prontuario />} />
             <Route path="/agendamento" element={<Agendamento />} />
             <Route path="/perfil" element={<Perfil />} />
+            <Route path="/estatisticas" element={<Estatisticas />} />
             {isAdmin && <Route path="/admin" element={<Admin />} />}
           </Routes>
         </main>
@@ -65,7 +68,6 @@ function AppInner() {
   if (recoveryMode) return <RedefinirSenha />;
 
   const duoId = session.user.user_metadata?.duo_id;
-  const duoStatus = session.user.user_metadata?.status;
 
   if (!duoId) {
     return (
@@ -78,29 +80,11 @@ function AppInner() {
     );
   }
 
-  if (duoStatus === 'pendente') {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#F9F9F9] font-[Inter,sans-serif]">
-        <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center max-w-sm">
-          <p className="text-3xl mb-3">⏳</p>
-          <p className="text-[#7A5800] font-semibold text-lg">Cadastro aguardando aprovação</p>
-          <p className="text-gray-500 text-sm mt-2">
-            Sua solicitação foi recebida. Você receberá acesso assim que o administrador aprovar.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-5 text-sm text-[#666666] hover:text-[#800000] underline"
-          >
-            Já foi aprovado? Clique aqui para atualizar.
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <AppDataProvider duoId={duoId}>
-      <AppContent />
+      <ThemeProvider duoId={duoId}>
+        <AppContent />
+      </ThemeProvider>
     </AppDataProvider>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppData } from '../context/AppDataContext';
 import { Calendar as CalendarIcon, AlertCircle, CheckCircle, Clock, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const TURNOS_BASE = [
   { label: 'Manhã', slots: ['08:00', '09:00', '10:00', '11:00'] },
@@ -128,11 +128,13 @@ const HorarioPicker = ({ inicio, fim, onConfirm, onClose, horariosAtivos }) => {
 export const Agendamento = () => {
   const { pacientes, addConsulta, nomes, configuracoes, diasBloqueados, feriadosNacionais } = useAppData();
   const navigate = useNavigate();
+  const location = useLocation();
+  const preenchido = location.state || {};
 
   const [form, setForm] = useState({
     pacienteId: '',
-    data: '',
-    horario: '',
+    data: preenchido.data || '',
+    horario: preenchido.horario || '',
     horario_fim: '',
     dupla: 'Estudante A',
     status: 'Pendente',
