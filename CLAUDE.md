@@ -26,7 +26,9 @@ Agenda Duo é um sistema de gestão de agenda odontológica para **duplas de est
 | Export PNG | html2canvas |
 | Push | web-push (VAPID) + Service Worker |
 
-Tailwind v4 usa `@theme` em `src/index.css` — não tem `tailwind.config.js`. Classes customizadas `shadow-card`, `shadow-card-hover` e `.status-*` definidas lá via `@layer utilities`.
+Tailwind v4 usa `@theme` em `src/index.css` — não tem `tailwind.config.js`. Classes customizadas `shadow-card`, `shadow-card-hover`, `.status-*` e `.pb-safe` definidas lá via `@layer utilities`.
+
+`.pb-safe` = `padding-bottom: env(safe-area-inset-bottom, 0px)` — necessário pois Tailwind v4 não gera essa classe automaticamente. Usada na bottom nav mobile.
 
 ---
 
@@ -81,6 +83,14 @@ Tailwind v4 usa `@theme` em `src/index.css` — não tem `tailwind.config.js`. C
   logo-*.svg                 Logos horizontal e stacked
   manifest.json              PWA manifest
 ```
+
+---
+
+## Layout raiz (App.jsx)
+
+Container externo: `flex h-screen max-w-[100vw] overflow-x-hidden` — o `max-w-[100vw]` + `overflow-x-hidden` previnem overflow horizontal que causava "zoom out" automático no Android/iOS e sumia a bottom nav. O `html` também tem `overflow-x: hidden` no CSS (seguro para `position:fixed` diferente de colocar no `body`).
+
+Filho flex: `flex flex-col flex-1 min-h-0 min-w-0` — o `min-w-0` impede expansão além do espaço disponível.
 
 ---
 
@@ -200,7 +210,8 @@ bloquearDia / desbloquearDia
 Para duplas antigas sem `user_a_id`/`user_b_id`: lazy-init busca todos os usuários e filtra por `duo_id` nos metadados, depois persiste os IDs encontrados.
 
 ### Excluir dupla (Admin)
-Client-side em `Admin.jsx`: deleta em cascata consultas, pacientes, plano_tratamento, dias_bloqueados, push_subscriptions, configuracoes; depois deleta a linha `duplas`.
+Client-side em `Admin.jsx`: deleta em cascata (nesta ordem) consultas, plano_tratamento, pacientes, dias_bloqueados, push_subscriptions, perfis, configuracoes; depois deleta a linha `duplas`.
+⚠️ Os usuários Auth (`auth.users`) **não são deletados** — continuam existindo mas ficam sem dupla vinculada. Admin delete não avisa se há consultas futuras.
 
 ### Minha Conta (dentro das Configurações)
 A seção "Conta" fica dentro do modal de Configurações (Sidebar e MobileNav), com duas abas:
@@ -214,6 +225,7 @@ A seção "Conta" fica dentro do modal de Configurações (Sidebar e MobileNav),
 - Campos editáveis: período (1–10) e foto (CPF e RG removidos por segurança)
 - Upload de foto: `supabase.storage.from('avatars').upload(path, file, { upsert: true })` → salva URL pública em `perfis.foto_url`
 - Path da foto: `{duo_id}/{user_id}.{ext}`
+- **Botão "Painel Administrativo"** (ícone ShieldCheck, maroon) visível apenas quando `session.user.email === VITE_ADMIN_EMAIL` — navega para `/admin`
 
 ### Clínicas por atendimento
 - `configuracoes.clinicasAtivas[]` — lista ativada via toggles nas Configurações
@@ -333,12 +345,58 @@ Status CSS: `.status-confirmado`, `.status-pendente`, `.status-cancelado`, `.sta
 - `supabaseNoSession.js` não é importado em nenhum arquivo ativo — pode deletar
 - **Sem validação de conflito de horário** — dois agendamentos no mesmo slot/dupla são possíveis
 - Feriados de `brasilapi.com.br`: se API fora do ar, `feriadosNacionais` fica vazio silenciosamente
-- Admin delete não avisa se há consultas futuras — deleta tudo sem confirmação de impacto
 - Push notifications: falha silenciosa se browser não suporta
 - Sem testes automatizados — validação 100% manual
 - Export PNG demora 2–3s (html2canvas blocking na thread principal)
 - Sem logout automático por inatividade
 - Exportações (CSV/PDF/PNG) não incluem o campo `clinica` ainda
+- Excluir dupla não deleta os usuários Auth (`auth.users`) — só remove da tabela `duplas` e dados associados
+- Dupla "Kat e Geovane": `email_a` ainda está null — admin precisa editar e preencher o email do estudante A
+- Ainda existem duplas duplicadas vazias de "Julia e Raquel" e "Batista e Martins" que precisam ser excluídas pelo admin
+
+---
+
+## Estado da Sessão — 2026-05-23 (atualizado)
+
+### Concluído
+- **Prontuário — edição inline do plano de tratamento**: adicionado `updatePlanoItem` no AppDataContext; cada item do plano agora tem botão de lápis que abre formulário inline para editar dente/procedimento/observações
+- **Prontuário — ficha clínica melhorada**: visualização dos dados preenchidos em blocos organizados; CTAs mais claros ("Preencher ficha" quando vazia); botão de edição com borda em vez de link minúsculo
+- **Prontuário — acordeão na ficha clínica**: com mais de 3 consultas, as antigas ficam recolhidas por padrão; cabeçalho clicável abre/fecha; resumo do procedimento visível mesmo recolhido; botão "Ver todas / Recolher antigas"
+- **Prontuário — exclusão de consulta**: botão de lixeira em cada entrada da ficha clínica com confirmação antes de deletar
+- **Admin — exclusão via API serverless** (`/api/excluir-dupla.js`): deleção client-side era bloqueada silenciosamente pelo RLS; agora passa pela API com service role key
+- **Admin — contagens por dupla** (`/api/contagens-duplas.js`): badges "X pac · Y cons" em cada dupla no painel; verde = tem dados, cinza = vazia; usa service role key para contornar RLS
+- **Admin — alertas de conta com problema**: destaque laranja para duplas com `email_a` ou `email_b` null mas user_id existente
+
+### Decidido
+- Contagens de pacientes/consultas no admin **devem** usar API serverless — RLS impede o admin de ver dados de outras duplas com o JWT normal
+- Deleção de duplas **deve** usar API serverless pelo mesmo motivo
+
+### Pendente / Próximos passos
+- Admin excluir as 3 "Batista e Martins" vazias (IDs: `9a8bd091`, `b95b8803`, `c689f206`) — a que tem 9 pacientes/6 consultas é a `8f6b220d`
+- Admin excluir uma das duas "Julia e Raquel" (ambas vazias)
+- Admin editar "Kat e Geovane" e preencher o email do estudante A (email_b = boltzinho74@gmail.com já está ok)
+
+---
+
+## Estado da Sessão — 2026-05-23 (sessão 2)
+
+### Concluído
+- **Remoção do fluxo de aprovação**: `api/solicitar-cadastro.js` agora cria duplas com `status: 'ativo'` e cria `configuracoes` iniciais imediatamente; removida tela de "Aguardando aprovação" do `App.jsx`; seção de solicitações pendentes removida do `Admin.jsx`; mensagem de sucesso no `Cadastro.jsx` atualizada
+- **Agendar clicando em slot vazio**: no mobile e no desktop, clicar em um horário livre na Agenda navega para `/agendamento` com data e horário pré-preenchidos via `location.state`
+- **Tema de cor personalizável por integrante**: `ThemeContext.jsx` criado — armazena cores no localStorage por `duo_id`, aplica `--duo-accent` como CSS variable quando filtro de estudante individual está ativo; seção "Cores dos Integrantes" adicionada nas Configurações (Sidebar e MobileNav); nav ativo usa `var(--duo-accent)` via inline style
+- **Aba de Estatísticas**: `src/pages/Estatisticas.jsx` criado com recharts (instalado v3.8.1); filtros por integrante e período; gráficos: pizza (por status), barra empilhada (por mês), linha (evolução), comparativo A vs B, e ranking de procedimentos; botão "Ver Estatísticas" adicionado no Perfil
+- **Sugestões nas Configurações**: seção "Sugestões" adicionada em Sidebar e MobileNav; texto salvo no localStorage com data/hora; lista as 5 últimas enviadas
+- **Remoção do nome da faculdade**: `index.html` (title + og:title) e `manifest.json` atualizados de "Agenda Duo | Univassouras" para "Agenda Duo"; instrução fornecida para limpar cache do WhatsApp via Facebook Sharing Debugger
+
+### Decidido
+- Fluxo de aprovação foi removido por completo — qualquer dupla que se cadastre entra imediatamente com acesso ativo
+- Cores ficam no `localStorage` (não no Supabase) — simples e sem necessidade de nova coluna no banco
+- `ThemeContext` posicionado dentro de `AppDataProvider` e fora de `AuthProvider` — acessa `duoId` via prop
+
+### Pendente / Próximos passos
+- Limpar cache do preview do WhatsApp via Facebook Sharing Debugger para o link `https://agenda-duo.vercel.app/`
+- Admin excluir as 3 "Batista e Martins" vazias — pendência da sessão anterior
+- Avaliar se a Estatística de "Procedimentos" tem dados suficientes (depende do campo `procedimento` preenchido nas fichas)
 
 ---
 
