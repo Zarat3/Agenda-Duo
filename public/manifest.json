@@ -1,7 +1,7 @@
 {
-  "name": "Agenda Duo – Univassouras",
+  "name": "Agenda Duo",
   "short_name": "DUO",
-  "description": "Sistema de agendamento da Clínica Odontológica de Univassouras",
+  "description": "Sistema de agendamento odontológico para duplas universitárias",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F9F9F9",
