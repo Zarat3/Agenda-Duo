@@ -5,6 +5,7 @@ const MAP = {
   Pendente:    'status-pendente',
   Cancelado:   'status-cancelado',
   Realizado:   'status-realizado',
+  Remarcado:   'status-remarcado',
 };
 
 export const StatusBadge = ({ status, className = '' }) => (

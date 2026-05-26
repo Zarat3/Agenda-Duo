@@ -79,4 +79,9 @@
     background-color: var(--color-status-neutral-bg);
     color: var(--color-status-neutral);
   }
+
+  .status-remarcado {
+    background-color: #E0F2FE;
+    color: #075985;
+  }
 }

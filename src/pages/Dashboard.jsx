@@ -23,6 +23,7 @@ const STATUS_CARD = {
   'Pendente':   'border-[#FFB703] bg-[#FFF3CD] text-[#7A5800]',
   'Cancelado':  'border-[#C94C4C] bg-[#FDECEA] text-[#C94C4C] opacity-60',
   'Realizado':  'border-gray-300  bg-gray-50   text-gray-500',
+  'Remarcado':  'border-[#0284C7] bg-[#E0F2FE] text-[#075985]',
 };
 
 const STATUS_BADGE = {
@@ -30,6 +31,7 @@ const STATUS_BADGE = {
   'Pendente':   'bg-[#FFF3CD] text-[#7A5800]',
   'Cancelado':  'bg-[#FDECEA] text-[#C94C4C]',
   'Realizado':  'bg-gray-100  text-gray-500',
+  'Remarcado':  'bg-[#E0F2FE] text-[#075985]',
 };
 
 const DOT  = { 'Estudante A': 'bg-blue-500', 'Estudante B': 'bg-purple-500' };
@@ -47,7 +49,7 @@ const TURNOS_EDIT = [
   { label: 'Noite', slots: ['16:20', '17:20', '18:20'] },
 ];
 
-const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWhatsApp, onWhatsAppLembrete, onStatusChange, onDelete, onSaveEdit }) => {
+const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWhatsApp, onWhatsAppLembrete, onWhatsAppRemarcar, onStatusChange, onDelete, onSaveEdit }) => {
   const [confirmandoDelete, setConfirmandoDelete] = React.useState(false);
   const [editando, setEditando] = React.useState(false);
   const [editForm, setEditForm] = React.useState({ data: c.data, horario: c.horario, horario_fim: c.horario_fim || '', dupla: c.dupla });
@@ -111,6 +113,7 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
               className={`w-full text-sm font-semibold px-3 py-2 rounded-xl border outline-none cursor-pointer ${STATUS_BADGE[c.status] || 'bg-gray-100 text-gray-600'}`}>
               <option value="Pendente">Pendente</option>
               <option value="Confirmado">Confirmado</option>
+              <option value="Remarcado">Remarcado</option>
               <option value="Cancelado">Cancelado</option>
               <option value="Realizado">Realizado</option>
             </select>
@@ -194,6 +197,10 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
                   <FileText size={15} /> Prontuário
                 </button>
               </div>
+              <button onClick={onWhatsAppRemarcar}
+                className="w-full flex items-center justify-center gap-1.5 bg-[#0284C7] hover:bg-[#0369A1] text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
+                <MessageCircle size={15} /> Remarcar via WhatsApp
+              </button>
               <button onClick={() => setEditando(true)}
                 className="w-full text-xs text-gray-400 hover:text-[#800000] hover:bg-gray-50 py-1.5 rounded-xl transition-colors mt-1">
                 ✏️ Editar data / horário / responsável
@@ -318,6 +325,16 @@ export const Dashboard = () => {
     let amanha = '';
     try { amanha = isTomorrow(parseISO(c.data)) ? 'amanhã, ' : ''; } catch {}
     const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nLembrete: sua consulta odontológica é ${amanha}dia *${dataFmt}* às *${horarioDisplay}*.\nTe esperamos! 😊`;
+    window.open(`https://wa.me/55${normalizePhone(pac.telefone)}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleWhatsAppRemarcar = (pac, c) => {
+    let dataFmt = c.data;
+    try { dataFmt = format(parseISO(c.data), 'dd/MM/yyyy'); } catch {}
+    const horarioDisplay = c.horario_fim ? `${c.horario} – ${c.horario_fim}` : c.horario;
+    const text = `Olá, ${pac.nome.split(' ')[0]}! 🦷\nGostaríamos de remarcar sua consulta odontológica que estava prevista para *${dataFmt}* às *${horarioDisplay}*.\n\nQuais dias e horários são melhores para você? Assim que confirmarmos, te avisamos! 😊`;
+    updateConsultaStatus(c.id, 'Remarcado').catch(console.error);
+    setPopup(prev => prev ? { ...prev, consulta: { ...prev.consulta, status: 'Remarcado' } } : null);
     window.open(`https://wa.me/55${normalizePhone(pac.telefone)}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -747,6 +764,7 @@ export const Dashboard = () => {
           onClose={() => setPopup(null)}
           onWhatsApp={() => handleWhatsApp(popup.paciente, popup.consulta)}
           onWhatsAppLembrete={() => handleWhatsAppLembrete(popup.paciente, popup.consulta)}
+          onWhatsAppRemarcar={() => handleWhatsAppRemarcar(popup.paciente, popup.consulta)}
           onProntuario={() => { setPopup(null); navigate(`/pacientes/${popup.paciente.id}`, { state: { from: 'agenda' } }); }}
           onStatusChange={handleStatusChange}
           onDelete={() => { deleteConsulta(popup.consulta.id).catch(console.error); setPopup(null); }}
