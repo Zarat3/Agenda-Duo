@@ -234,6 +234,56 @@ const Popup = ({ consulta: c, paciente: pac, nomes, onClose, onProntuario, onWha
   );
 };
 
+/* ─── Painel Aguardando Remarcação ─────────────────────── */
+const PainelRemarcados = ({ onAbrirPopup }) => {
+  const { consultas, pacientes } = useAppData();
+  const [aberto, setAberto] = React.useState(true);
+
+  const remarcados = consultas
+    .filter(c => c.status === 'Remarcado')
+    .sort((a, b) => a.data.localeCompare(b.data));
+
+  if (remarcados.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-[#0284C7]/30 overflow-hidden">
+      <button
+        onClick={() => setAberto(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#E0F2FE]/40 transition-colors">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[#0284C7]" />
+          <span className="text-xs font-semibold text-[#075985] uppercase tracking-wide">
+            Aguardando remarcação
+          </span>
+          <span className="text-[10px] font-bold bg-[#0284C7] text-white rounded-full px-1.5 py-0.5 leading-none">
+            {remarcados.length}
+          </span>
+        </div>
+        <ChevronRight size={14} className={`text-[#0284C7] transition-transform ${aberto ? 'rotate-90' : ''}`} />
+      </button>
+
+      {aberto && (
+        <div className="px-3 pb-3 space-y-1.5">
+          {remarcados.map(c => {
+            const pac = pacientes.find(p => p.id === c.pacienteId);
+            if (!pac) return null;
+            let dataFmt = c.data;
+            try { dataFmt = format(parseISO(c.data), 'dd/MM', { locale: ptBR }); } catch {}
+            const horario = c.horario_fim ? `${c.horario}–${c.horario_fim}` : c.horario;
+            return (
+              <button key={c.id} onClick={() => onAbrirPopup(c)}
+                className="w-full text-left bg-[#E0F2FE]/50 hover:bg-[#E0F2FE] border border-[#0284C7]/20 rounded-lg px-3 py-2 transition-colors">
+                <p className="text-xs font-semibold text-[#075985] truncate">{pac.nome.split(' ')[0]}</p>
+                <p className="text-[10px] text-[#0284C7]/80 mt-0.5">{dataFmt} · {horario}</p>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ─── Dashboard ────────────────────────────────────────── */
 export const Dashboard = () => {
   const { consultas, pacientes, nomes, configuracoes, diasBloqueados, feriadosNacionais, updateConsulta, updateConsultaStatus, deleteConsulta, bloquearDia, desbloquearDia } = useAppData();
@@ -295,7 +345,8 @@ export const Dashboard = () => {
 
   const getCell = (dateStr, horario) =>
     consultas.filter(c =>
-      c.data === dateStr && filtro[c.dupla] && getSlotsInRange(c.horario, c.horario_fim).includes(horario)
+      c.data === dateStr && filtro[c.dupla] && c.status !== 'Remarcado' &&
+      getSlotsInRange(c.horario, c.horario_fim).includes(horario)
     );
 
   const abrirPopup = (c) => {
@@ -605,6 +656,11 @@ export const Dashboard = () => {
         </div>
       </div>
 
+      {/* Aguardando Remarcação — mobile */}
+      <div className="md:hidden">
+        <PainelRemarcados onAbrirPopup={abrirPopup} />
+      </div>
+
       {/* ════════════════════════════════════════════════
           DESKTOP — Grade semanal
       ════════════════════════════════════════════════ */}
@@ -625,6 +681,7 @@ export const Dashboard = () => {
               ))}
             </div>
           </div>
+          <PainelRemarcados onAbrirPopup={abrirPopup} />
         </aside>
 
         {/* Main */}
